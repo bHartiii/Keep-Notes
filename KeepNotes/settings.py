@@ -26,7 +26,7 @@ SECRET_KEY = '0^8z=hr@te=^2h@ggegr=#2qt#krf$111-vy-(y0kcim98v4m7'
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
+AUTH_USER_MODEL = 'keep_notes_app.User'
 
 # Application definition
 
@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework_swagger',
 ]
 
 MIDDLEWARE = [
@@ -130,6 +131,15 @@ STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
 REST_FRAMEWORK = {
-    
+    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
     'DEFAULT_AUTHENTICATION_CLASSES': ('rest_framework_simplejwt.authentication.JWTAuthentication',)
 }
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'basic': {
+            'type': 'basic'
+        }
+    },
+
+}
+# REST_FRAMEWORK = {'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema'}

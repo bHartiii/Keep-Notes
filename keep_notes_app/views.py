@@ -1,55 +1,16 @@
 from django.shortcuts import HttpResponse, render,redirect
-from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required
-from rest_framework_simplejwt.authentication import JWTAuthentication
-from .forms import CreateUserForm
+from rest_framework import generics, status
+from .serializers import RegisterSerializer
+from rest_framework.response import Response
 
-# Create your views here.
+class RegisterView(generics.GenericAPIView):
 
-def index(request):
-    return render(request, 'index.html')
+    serializer_class = RegisterSerializer
+    def post(self, request):
+        user = request.data
+        serializer = self.serializer_class(data=user)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
 
-def registration(request):
-    if request.user.is_authenticated:
-        return redirect('profile')
-    else:
-        form = CreateUserForm()
-        if request.method == 'POST':
-            form = CreateUserForm(request.POST)          
-            if form.is_valid():
-                form.save()
-                user = form.cleaned_data.get('username')
-                messages.success(request,'Account created for '+ user )
-                return redirect('login_url')
-        context = {'form':form}
-        return render(request, 'registration.html',context)
-
-
-def loginPage(request):
-    if request.user.is_authenticated:
-        return redirect('profile')
-    else:
-        if request.method == 'POST':
-            username = request.POST.get('username')
-            password = request.POST.get('password')
-            user = authenticate(request, username=username, password=password)
-
-            if user is not None:
-                login(request,user)
-                return redirect('profile')
-            
-            else:
-                messages.info(request, "Username or password is incorrect!!!")
-                return render(request, 'login.html')
-        return render(request, 'login.html')
-
-@login_required(login_url='login_url')
-def profile(request):
-    return render(request, 'profile.html')
-
-def logoutUser(request):
-    logout(request)
-    return redirect('login_url')
-
-
+        user_data = serializer.data
+        return Response(user_data,status=status.HTTP_201_CREATED)

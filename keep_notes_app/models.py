@@ -1,10 +1,5 @@
 from django.db import models
 from django.contrib.auth.models import (AbstractBaseUser, BaseUserManager, PermissionsMixin )
-# Create your models here.
-# class Registration(models.Model):
-    # user_name = models.CharField(max_length=50)
-    # password = models.CharField(max_length=50)
-    # date = models.DateTimeField(auto_now_add=True,db_index=True)
 
  
 class UserManager(BaseUserManager):
@@ -15,19 +10,20 @@ class UserManager(BaseUserManager):
         
         if email is None:
             raise TypeError('User should have a Email')
-        user = self.model(username=username, email=self.normalize_email)
+        user = self.model(username=username, email=self.normalize_email(email))
         user.set_password(password)
         user.save()
+        return user
         
     def create_superuser(self, username, email, password=None):
         if password is None:
             raise TypeError('Password can not be none')
 
-       user = self.create_user(username, email, password)
-       user.is_superuser=True
-       user.is_staff = True
-       user.save()
-       return user
+        user = self.create_user(username, email, password)
+        user.is_superuser=True
+        user.is_staff = True
+        user.save()
+        return user
 
 class User(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=255, unique=True,  db_index=True)
