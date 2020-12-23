@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+    <head>
+       <!-- Required meta tags -->
+       <meta charset="utf-8">
+       <meta name="viewport" content="width=device-width, initial-scale=1">
+       <!-- Bootstrap CSS -->
+       <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+       <title>{% block title %}{% endblock title %}</title>
+       <link rel = "stylesheet" type = "text/css" href="/static/css/greeting.css"/>
+       <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+       {% load static %}
+       
+           <script src="{% static '/js/greeting.js' %}" type="text/javascript"></script>
+    </head>
+    <body>
+        {% csrf_token %}
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link active" aria-current="page" href="/registration" id="nav">SignUp</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" aria-current="page" href="/login" id="nav">Login</a>
+                </li>
+                <li class="nav-item nav-link">
+                    Hello,{{request.user}}
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" aria-current="page" href="/logout" id="nav">Logout</a>
+                </li>
+            </ul>
+            </div>
+            
+        </div>
+        
+      </nav>
+      {% block body %}{% endblock body %}
+      <!-- Option 1: Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-ygbV9kiqUc6oa4msXn9868pTtWMgiQaeYH7/t7LECLbyPA2x65Kgf80OJFdroafW"     crossorigin="anonymous"></script>
+   </body>
+</html>
+
