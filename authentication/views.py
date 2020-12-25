@@ -35,7 +35,7 @@ class RegisterView(generics.GenericAPIView):
         return Response(user_data,status=status.HTTP_201_CREATED)
 
 
-class VerifyEmail(views.APIView):
+class VerifyEmail(generics.GenericAPIView):
     serializer_class = EmailVerificationSerializer
     token_param_config = openapi.Parameter('token',in_=openapi.IN_QUERY,description='Description',type=openapi.TYPE_STRING)
 
@@ -47,6 +47,7 @@ class VerifyEmail(views.APIView):
             user = User.objects.get(id=payload['user_id'])
             if not user.is_verified:
                 user.is_verified=True
+                user.is_active=True
                 user.save()
             return Response({'email':'Succefully Activated'},status=status.HTTP_200_OK)
         except jwt.ExpiredSignatureError as identifier:
@@ -54,15 +55,13 @@ class VerifyEmail(views.APIView):
         except jwt.exceptions.DecodeError as identifier:
             return Response({'error':'Invalid Token'}, status=status.HTTP_400_BAD_REQUEST)
 
-class LoginAPIView(views.APIView):
+class LoginAPIView(generics.GenericAPIView):
     serializer_class = LoginSerializer
 
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-        if not user.is_active:
-                user.is_active=True
-                user.save()
+        
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 

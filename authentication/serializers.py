@@ -13,7 +13,6 @@ class RegisterSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         email = attrs.get('email','')
         username = attrs.get('username','')
-
         if not username.isalnum():
             raise serializers.ValidationError('Username should contain alphanumeric values only')
         return attrs
@@ -49,8 +48,6 @@ class LoginSerializer(serializers.ModelSerializer):
             raise AuthenticationFailed("Account is deactivated!!!")
         if not user.is_verified:
             raise AuthenticationFailed("Email is not verified!!!")
-        
-        
         return {
             'email':user.email,
             'username':user.username,
