@@ -1,16 +1,17 @@
 from django.shortcuts import HttpResponse, render,redirect
-from rest_framework import generics, status, views
-from .serializers import RegisterSerializer, EmailVerificationSerializer, LoginViewSerializer
+from rest_framework import generics, status, views, permissions
+from authentication.serializers import RegisterSerializer, EmailVerificationSerializer, LoginSerializer
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken 
-from .models import User   
-from .utils import Util
+from authentication.models import User 
+from authentication.utils import Util
 from django.contrib.sites.shortcuts import  get_current_site
 from django.urls import reverse
 from django.conf import settings
 import jwt
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+
 
 class RegisterView(generics.GenericAPIView):
 
@@ -45,7 +46,6 @@ class VerifyEmail(views.APIView):
             payload = jwt.decode(token,settings.SECRET_KEY)
             user = User.objects.get(id=payload['user_id'])
             if not user.is_verified:
-                user.is_active=True
                 user.is_verified=True
                 user.save()
             return Response({'email':'Succefully Activated'},status=status.HTTP_200_OK)
@@ -54,10 +54,15 @@ class VerifyEmail(views.APIView):
         except jwt.exceptions.DecodeError as identifier:
             return Response({'error':'Invalid Token'}, status=status.HTTP_400_BAD_REQUEST)
 
-class LoginView(generics.GenericAPIView):
-    serializer_class = LoginViewSerializer
+class LoginAPIView(views.APIView):
+    serializer_class = LoginSerializer
 
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
+        if not user.is_active:
+                user.is_active=True
+                user.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+

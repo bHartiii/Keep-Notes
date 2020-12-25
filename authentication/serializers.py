@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User
+from authentication.models import User
 from django.contrib import auth
 from rest_framework.exceptions import AuthenticationFailed
 
@@ -28,7 +28,7 @@ class EmailVerificationSerializer(serializers.ModelSerializer):
         model=User
         fields=['token']
 
-class LoginViewSerializer(serializers.ModelSerializer):
+class LoginSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(max_length=255, min_length=3)
     password = serializers.CharField(max_length=68, min_length=6, write_only=True)
     username = serializers.CharField(max_length=255, min_length=3, read_only=True)
@@ -56,6 +56,8 @@ class LoginViewSerializer(serializers.ModelSerializer):
             'username':user.username,
             'tokens': user.tokens()
         }
+
+
 
         
 

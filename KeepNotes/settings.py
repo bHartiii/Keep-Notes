@@ -27,13 +27,14 @@ SECRET_KEY = '0^8z=hr@te=^2h@ggegr=#2qt#krf$111-vy-(y0kcim98v4m7'
 DEBUG = True
 
 ALLOWED_HOSTS = []
-AUTH_USER_MODEL = 'keep_notes_app.User'
+AUTH_USER_MODEL = 'authentication.User'
 
 # Application definition
 
 INSTALLED_APPS = [
     'rest_framework',
-    'keep_notes_app.apps.KeepNotesAppConfig',
+    'authentication',
+    'Notes',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -150,4 +151,4 @@ EMAIL_USE_TLS = True
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_HOST_USER = 'abc@gmail.com'
-EMAIL_HOST_PASSWORD = 'password'
+EMAIL_HOST_PASSWORD = '*****'
