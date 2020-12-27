@@ -4,7 +4,7 @@ from django.contrib import auth
 from rest_framework.exceptions import AuthenticationFailed
 
 class RegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(max_length=68,  min_length=6, write_only=True)
+    password = serializers.CharField(max_length=68,  min_length=6, write_only=True, style={'input_type': 'password'})
 
     class Meta:
         model=User
@@ -29,7 +29,7 @@ class EmailVerificationSerializer(serializers.ModelSerializer):
 
 class LoginSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(max_length=255, min_length=3)
-    password = serializers.CharField(max_length=68, min_length=6, write_only=True)
+    password = serializers.CharField(max_length=68, min_length=6, write_only=True, style={'input_type': 'password'})
     username = serializers.CharField(max_length=255, min_length=3, read_only=True)
     tokens = serializers.CharField(max_length=68, min_length=6, read_only=True)
 
@@ -54,7 +54,33 @@ class LoginSerializer(serializers.ModelSerializer):
             'tokens': user.tokens()
         }
 
+class ResetPasswordSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(max_length=255, min_length=3)
+    password = serializers.CharField(max_length=68, min_length=6)
+    password2 = serializers.CharField(max_length=68, min_length=6,style={'input_type': 'password'})
+    class Meta:
+        model = User
+        fields = ['email','password','password2']
 
-
+    
+    def validate(self, attrs):
+        email = attrs.get('email','')
+        password = attrs.get('password','')
+        password2 = attrs.get('password2','')
         
+        try:
+            user = User.objects.get(email=email)
+            if password != password2:
+                raise serializers.ValidationError("Password not matched!!")
+        except User.DoesNotExist:
+            raise serializers.ValidationError("This email is not registerd")
+    
+        return attrs
 
+class NewPasswordSerializer(serializers.ModelSerializer):
+
+    token = serializers.CharField(max_length=555)
+        
+    class Meta:
+        model=User
+        fields = ['token']
