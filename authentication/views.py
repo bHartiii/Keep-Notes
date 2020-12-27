@@ -11,6 +11,7 @@ from django.conf import settings
 import jwt
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from rest_framework_jwt.utils import jwt_payload_handler
 
 
 class RegisterView(generics.GenericAPIView):
@@ -57,12 +58,19 @@ class VerifyEmail(generics.GenericAPIView):
 
 class LoginAPIView(generics.GenericAPIView):
     serializer_class = LoginSerializer
-
+    
     def post(self, request):
+        
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        user_data = serializer.data
+        user = User.objects.get(email =user_data['email'], password=user_data['password'])
+       
+        payload = jwt_payload_handler(user)
+        token = jwt.encode(payload, settings.SECRET_KEY)
+        user_data['token'] = token
+        return Response(user_data, status=status.HTTP_200_OK)
+    
 
 class ResetPassword(generics.GenericAPIView):
     serializer_class = ResetPasswordSerializer
