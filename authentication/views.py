@@ -15,7 +15,7 @@ from drf_yasg import openapi
 from rest_framework_jwt.utils import jwt_payload_handler
 from django.contrib.sessions.models import Session
 import short_url
-import json
+import pyshorteners
 
 
 class RegisterView(generics.GenericAPIView):
@@ -37,7 +37,9 @@ class RegisterView(generics.GenericAPIView):
             relativeLink = reverse('verify-email')
         
             absurl = 'http://'+current_site+relativeLink+'?token='+str(token)
-            email_body = 'Hii \n'+user.username+' Use this below to verify your email \n'+absurl
+            shortener = pyshorteners.Shortener()
+            verification_link = shortener.tinyurl.short(absurl)
+            email_body = 'Hii \n'+user.username+' Use this below to verify your email \n'+verification_link
             data = {'email_body':email_body ,'to_email':user.email, 'email_subject':'Verify you email'}
             Util.send_email(data) 
             return Response(user_data,status=status.HTTP_201_CREATED)
