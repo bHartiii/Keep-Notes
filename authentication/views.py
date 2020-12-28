@@ -32,7 +32,8 @@ class RegisterView(generics.GenericAPIView):
         try:
             payload = jwt_payload_handler(user)
             token = jwt.encode(payload,settings.SECRET_KEY)
-            
+            length = len(token)
+            token = token[2:length-1]
             current_site = get_current_site(request).domain
             relativeLink = reverse('verify-email')
         
@@ -90,16 +91,20 @@ class ResetPassword(generics.GenericAPIView):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         user_data = serializer.data
-        user = User.objects.get(email=user_data['email'])
+        user = User.objects.get(email=user_data['email']) 
         current_site = get_current_site(request).domain
         reverseLink = reverse('new-pass')
         payload = jwt_payload_handler(user)
         token = jwt.encode(payload, settings.SECRET_KEY)
         token = str(token)
-        email_body = "hii \n"+user.username+"Use this link to reset password: \n"+'http://'+current_site+reverseLink+'?token='+token
+        length = len(token)
+        token = token[2:length-1]
+        shortener = pyshorteners.Shortener()
+        reset_link = shortener.tinyurl.short('http://'+current_site+reverseLink+'?token='+token)
+        email_body = "hii \n"+user.username+"Use this link to reset password: \n"+reset_link
         data={'email_body':email_body,'to_email':user.email,'email_subject':"Reset password Link"}
         Util.send_email(data)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(user_data, status=status.HTTP_200_OK)
 
 
 class NewPassword(generics.GenericAPIView):
