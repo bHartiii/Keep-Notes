@@ -2,7 +2,8 @@ from rest_framework import serializers
 from authentication.models import User
 from django.contrib import auth
 from rest_framework.exceptions import AuthenticationFailed
-from rest_framework_simplejwt.tokens import RefreshToken, TokenError
+from django.contrib.auth import authenticate
+
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(max_length=68,  min_length=6, write_only=True, style={'input_type': 'password'})
@@ -41,7 +42,7 @@ class LoginSerializer(serializers.ModelSerializer):
         email= attrs.get('email','')
         password = attrs.get('password','')
         try:
-            user = User.objects.get(email =email, password=password)
+            user = authenticate(email =email, password=password)
             if not user:
                 raise AuthenticationFailed("Invalid credentials given!!!")
             if not user.is_active:

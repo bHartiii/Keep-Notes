@@ -1,7 +1,6 @@
 from django.shortcuts import HttpResponse, render,redirect
 from django.contrib.auth import logout
-from django.contrib.auth.decorators import login_required
-from rest_framework import generics, status, views, permissions
+from rest_framework import generics, status, views, permissions, authentication
 from authentication.serializers import RegisterSerializer, EmailVerificationSerializer, LoginSerializer, ResetPasswordSerializer, NewPasswordSerializer
 from rest_framework.response import Response
 from authentication.models import User 
@@ -13,13 +12,14 @@ import jwt
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework_jwt.utils import jwt_payload_handler
-from django.contrib.sessions.models import Session
-import short_url
 import pyshorteners
+from rest_framework.permissions import AllowAny
+from django.contrib.auth import authenticate
+
 
 
 class RegisterView(generics.GenericAPIView):
-
+    permission_classes = (AllowAny,)
     serializer_class = RegisterSerializer
     def post(self, request):
         user = request.data
@@ -31,9 +31,7 @@ class RegisterView(generics.GenericAPIView):
         user = User.objects.get(email=user_data['email'])
         try:
             payload = jwt_payload_handler(user)
-            token = jwt.encode(payload,settings.SECRET_KEY)
-            length = len(token)
-            token = token[2:length-1]
+            token = jwt.encode(payload,settings.SECRET_KEY).decode('UTF-8')
             current_site = get_current_site(request).domain
             relativeLink = reverse('verify-email')
         
@@ -50,6 +48,8 @@ class RegisterView(generics.GenericAPIView):
 
 class VerifyEmail(generics.GenericAPIView):
     serializer_class = EmailVerificationSerializer
+    permission_classes = (AllowAny,)
+
     token_param_config = openapi.Parameter('token',in_=openapi.IN_QUERY,description='Description',type=openapi.TYPE_STRING)
 
     @swagger_auto_schema(manual_parameters=[token_param_config])
@@ -71,6 +71,8 @@ class VerifyEmail(generics.GenericAPIView):
 
 class LoginAPIView(generics.GenericAPIView):
     serializer_class = LoginSerializer
+    permission_classes = (AllowAny,)
+    
     
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
@@ -79,13 +81,14 @@ class LoginAPIView(generics.GenericAPIView):
         user = User.objects.get(email =user_data['email'], password=user_data['password'])
         payload = jwt_payload_handler(user)
         token = jwt.encode(payload, settings.SECRET_KEY)
-        user_data['token'] = token
+        user_data['token'] = token 
         request.session['is_logged'] = True
         return Response(user_data, status=status.HTTP_200_OK)
     
 
 class ResetPassword(generics.GenericAPIView):
     serializer_class = ResetPasswordSerializer
+    permission_classes = (AllowAny,)
 
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
@@ -95,10 +98,9 @@ class ResetPassword(generics.GenericAPIView):
         current_site = get_current_site(request).domain
         reverseLink = reverse('new-pass')
         payload = jwt_payload_handler(user)
-        token = jwt.encode(payload, settings.SECRET_KEY)
-        token = str(token)
-        length = len(token)
-        token = token[2:length-1]
+        token = jwt.encode(payload, settings.SECRET_KEY).decode('UTF-8')
+       
+        user_data['token']=token
         shortener = pyshorteners.Shortener()
         reset_link = shortener.tinyurl.short('http://'+current_site+reverseLink+'?token='+token)
         email_body = "hii \n"+user.username+"Use this link to reset password: \n"+reset_link
@@ -109,6 +111,7 @@ class ResetPassword(generics.GenericAPIView):
 
 class NewPassword(generics.GenericAPIView):
     serializer_class = NewPasswordSerializer
+    permission_classes = (AllowAny,)
     token_param_config = openapi.Parameter('token',in_=openapi.IN_QUERY,description='Description',type=openapi.TYPE_STRING)
 
     @swagger_auto_schema(manual_parameters=[token_param_config])
