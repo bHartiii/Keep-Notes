@@ -19,7 +19,7 @@ class NotesListAPIView(generics.ListCreateAPIView):
         return serializer.save(owner=self.request.user)
     
     def get_queryset(self):
-        return self.queryset.filter(owner=self.request.user)
+        return self.queryset.filter(owner=self.request.user,isArchive=False)
 
 
 class NotesDetailsAPIView(generics.RetrieveUpdateDestroyAPIView):
@@ -32,5 +32,5 @@ class NotesDetailsAPIView(generics.RetrieveUpdateDestroyAPIView):
         return serializer.save(owner=self.request.user)
     
     def get_queryset(self):
-        return self.queryset.filter(owner=self.request.user)
+        return self.queryset.filter(owner=self.request.user,isArchive=False)
 
