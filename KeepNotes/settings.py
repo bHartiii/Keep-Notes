@@ -146,20 +146,20 @@ REST_FRAMEWORK = {
      'DEFAULT_PERMISSION_CLASSES': [
          'rest_framework.permissions.IsAuthenticated',
          ],
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-     'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
-     )
+    # 'DEFAULT_AUTHENTICATION_CLASSES': (
+    #  'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+    #  )
 }
-SWAGGER_SETTINGS = {
-    'SECURITY_DEFINITIONS': {
-        'Bearer': {
-            'type': 'apiKey',
-            'name': 'Authorization',
-            'in': 'header'
-        }
-    }
+    # SWAGGER_SETTINGS = {
+    #     'SECURITY_DEFINITIONS': {
+    #         'Bearer': {
+    #             'type': 'apiKey',
+    #             'name': 'Authorization',
+    #             'in': 'header'
+    #         }
+    #     }
 
-}
+    # }
 
 JWT_AUTH = {
  

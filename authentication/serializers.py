@@ -6,7 +6,7 @@ from django.contrib.auth import authenticate
 
 
 class RegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(max_length=68,  min_length=6, write_only=True, style={'input_type': 'password'})
+    password = serializers.CharField(max_length=68,  min_length=6, write_only=True)
 
     class Meta:
         model=User
@@ -19,8 +19,8 @@ class RegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Username should contain alphanumeric values only')
         return attrs
 
-    def create(self, validate_data):
-        return User.objects.create_user(**validate_data)
+    # def create(self, validate_data):
+    #     return User.objects.create_user(**validate_data)
 
 class EmailVerificationSerializer(serializers.ModelSerializer):
     token = serializers.CharField(max_length=555)
@@ -31,7 +31,7 @@ class EmailVerificationSerializer(serializers.ModelSerializer):
 
 class LoginSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(max_length=255, min_length=3)
-    password = serializers.CharField(max_length=68, min_length=6, style={'input_type': 'password'})
+    password = serializers.CharField(max_length=68, min_length=6)
     username = serializers.CharField(max_length=255, min_length=3, read_only=True)
 
     class Meta:
@@ -42,7 +42,7 @@ class LoginSerializer(serializers.ModelSerializer):
         email= attrs.get('email','')
         password = attrs.get('password','')
         try:
-            user = authenticate(email =email, password=password)
+            user = User.objects.get(email=email, password=password)
             if not user:
                 raise AuthenticationFailed("Invalid credentials given!!!")
             if not user.is_active:

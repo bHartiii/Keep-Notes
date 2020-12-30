@@ -1,6 +1,6 @@
 from django.shortcuts import HttpResponse, render,redirect
-from django.contrib.auth import logout
-from rest_framework import generics, status, views, permissions, authentication
+from django.contrib.auth import logout,login, authenticate
+from rest_framework import generics, status, views, permissions
 from authentication.serializers import RegisterSerializer, EmailVerificationSerializer, LoginSerializer, ResetPasswordSerializer, NewPasswordSerializer
 from rest_framework.response import Response
 from authentication.models import User 
@@ -14,7 +14,6 @@ from drf_yasg import openapi
 from rest_framework_jwt.utils import jwt_payload_handler
 import pyshorteners
 from rest_framework.permissions import AllowAny
-from django.contrib.auth import authenticate
 
 
 
@@ -78,11 +77,12 @@ class LoginAPIView(generics.GenericAPIView):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         user_data = serializer.data
-        user = User.objects.get(email =user_data['email'], password=user_data['password'])
+        user = User.objects.get(email=user_data['email'], password=user_data['password'])
         payload = jwt_payload_handler(user)
         token = jwt.encode(payload, settings.SECRET_KEY)
         user_data['token'] = token 
-        request.session['is_logged'] = True
+        login(request, user,backend='django.contrib.auth.backends.ModelBackend')
+        # request.session['is_logged'] = True
         return Response(user_data, status=status.HTTP_200_OK)
     
 
