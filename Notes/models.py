@@ -7,4 +7,5 @@ class Notes(models.Model):
     content=models.TextField(db_index=True)
     owner=models.ForeignKey(to=User, on_delete=models.CASCADE)
     isArchive = models.BooleanField(default=False)
-    date = models.DateTimeField(null=False, blank=False)
+    isDelete = models.BooleanField(default=False)
+    date = models.DateTimeField(auto_created=True, null=False, blank=False)
