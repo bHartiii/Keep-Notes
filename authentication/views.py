@@ -91,6 +91,7 @@ class ResetPassword(generics.GenericAPIView):
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
+        serializer.save()
         user_data = serializer.data
         user = User.objects.get(email=user_data['email']) 
         current_site = get_current_site(request).domain

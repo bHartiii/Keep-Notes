@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import (AbstractBaseUser, BaseUserManager, PermissionsMixin )
-
+import uuid
  
 class UserManager(BaseUserManager):
  
@@ -43,8 +43,10 @@ class User(AbstractBaseUser, PermissionsMixin):
 
         
 class UserProfile(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(to=User, on_delete=models.CASCADE, related_name='profile')
     first_name = models.CharField(max_length=50, unique=False)
     last_name = models.CharField(max_length=50, unique=False)
-    age = models.PositiveIntegerField(null=False, blank=False)
+    DOB = models.DateField(max_length=8)
+    created_at = models.DateTimeField(auto_now_add=True)
     image = models.ImageField(upload_to='profile_picture/',max_length=255, null=True, blank=True)

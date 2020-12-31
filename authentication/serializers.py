@@ -8,7 +8,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = UserProfile
-        fields = ['first_name', 'last_name', 'age','image','user_id']
+        fields = ['first_name', 'last_name', 'DOB','image','user_id']
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(max_length=68,  min_length=6, write_only=True)
@@ -31,7 +31,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             user=user,
             first_name=profile_data['first_name'],
             last_name=profile_data['last_name'],
-            age=profile_data['age'],
+            DOB=profile_data['DOB'],
             image = profile_data['image'],
         )
         return user
