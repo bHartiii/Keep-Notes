@@ -1,9 +1,9 @@
 from django.shortcuts import HttpResponse, render,redirect
 from django.contrib.auth import logout,login, authenticate
 from rest_framework import generics, status, views, permissions
-from authentication.serializers import RegisterSerializer, EmailVerificationSerializer, LoginSerializer, ResetPasswordSerializer, NewPasswordSerializer
+from authentication.serializers import RegisterSerializer, EmailVerificationSerializer, LoginSerializer, ResetPasswordSerializer, NewPasswordSerializer, UserProfileSerializer
 from rest_framework.response import Response
-from authentication.models import User 
+from authentication.models import User, UserProfile
 from authentication.utils import Util
 from django.contrib.sites.shortcuts import  get_current_site
 from django.urls import reverse
@@ -26,7 +26,6 @@ class RegisterView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         user_data = serializer.data
-
         user = User.objects.get(email=user_data['email'])
         try:
             payload = jwt_payload_handler(user)
@@ -81,8 +80,7 @@ class LoginAPIView(generics.GenericAPIView):
         payload = jwt_payload_handler(user)
         token = jwt.encode(payload, settings.SECRET_KEY)
         user_data['token'] = token 
-        login(request, user,backend='django.contrib.auth.backends.ModelBackend')
-        # request.session['is_logged'] = True
+        login(request, user)
         return Response(user_data, status=status.HTTP_200_OK)
     
 
@@ -138,6 +136,18 @@ class LogoutView(generics.GenericAPIView):
     permission_classes = (permissions.IsAuthenticated,)
     def get(self, request):
         logout(request)
-        request.session.flush()
         return Response({"success": "Successfully logged out."},status=status.HTTP_200_OK)
 
+
+
+class UserProfileView(generics.RetrieveUpdateAPIView):
+    permission_classes=(permissions.IsAuthenticated,)
+    serializer_class = UserProfileSerializer
+    queryset=UserProfile.objects.all()
+
+    def get_object(self):
+        try:
+            return self.request.user.profile
+        except Exception as e:
+            pass
+    

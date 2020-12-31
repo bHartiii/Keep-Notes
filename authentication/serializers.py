@@ -1,16 +1,21 @@
 from rest_framework import serializers
-from authentication.models import User
+from authentication.models import User, UserProfile
 from django.contrib import auth
 from rest_framework.exceptions import AuthenticationFailed
 from django.contrib.auth import authenticate
 
+class UserProfileSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = UserProfile
+        fields = ['first_name', 'last_name', 'age','image','user_id']
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(max_length=68,  min_length=6, write_only=True)
-
+    profile = UserProfileSerializer(required=False)
     class Meta:
         model=User
-        fields = ['email', 'username', 'password']
+        fields = ['email', 'username', 'password','profile']
     
     def validate(self, attrs):
         email = attrs.get('email','')
@@ -19,8 +24,18 @@ class RegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Username should contain alphanumeric values only')
         return attrs
 
-    # def create(self, validate_data):
-    #     return User.objects.create_user(**validate_data)
+    def create(self, validated_data):
+        profile_data = validated_data.pop('profile')
+        user = User.objects.create_user(**validated_data)
+        UserProfile.objects.create(
+            user=user,
+            first_name=profile_data['first_name'],
+            last_name=profile_data['last_name'],
+            age=profile_data['age'],
+            image = profile_data['image'],
+        )
+        return user
+
 
 class EmailVerificationSerializer(serializers.ModelSerializer):
     token = serializers.CharField(max_length=555)
@@ -94,4 +109,6 @@ class NewPasswordSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Password not matched!!")
         
         return attrs
+
+
 
