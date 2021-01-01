@@ -41,21 +41,28 @@ class ArchiveNotesList(generics.ListAPIView):
     def get_queryset(self):
         return self.queryset.filter(owner=self.request.user,isArchive=True, isDelete=False)
 
-class ArchiveNote(generics.UpdateAPIView):
+class ArchiveNote(generics.RetrieveUpdateAPIView):
     serializer_class = ArchiveNotesSerializer
     queryset = Notes.objects.all()
     permission_classes = (permissions.IsAuthenticated, IsOwner)
     lookup_field="id"
+
+    def get_queryset(self):
+        return self.queryset.filter(owner=self.request.user, isDelete=False)
  
     def perform_create(self,serializer):
         return serializer.save(owner=self.request.user)
     
 
-class Trash(generics.UpdateAPIView):
+class Trash(generics.RetrieveUpdateAPIView):
     serializer_class = TrashSerializer
     queryset = Notes.objects.all()
     permission_classes = (permissions.IsAuthenticated, IsOwner)
     lookup_field="id"
+
+    def get_queryset(self):
+        return self.queryset.filter(owner=self.request.user)
+
  
     def perform_create(self,serializer):
         return serializer.save(owner=self.request.user)
