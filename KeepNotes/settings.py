@@ -84,22 +84,22 @@ WSGI_APPLICATION = 'KeepNotes.wsgi.application'
 #         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
-DATABASES = {
-    'default': {
-        'ENGINE': 'djongo',
-        'NAME': 'keep_notes',
-    }
-}
 # DATABASES = {
 #     'default': {
-#         'ENGINE': 'django.db.backends.postgresql_psycopg2',
+#         'ENGINE': 'djongo',
 #         'NAME': 'keep_notes',
-#         'USER': 'bharti',
-#         'PASSWORD': 'bharti',
-#         'PORT': '5432',
-
 #     }
 # }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'keep_notes',
+        'USER': 'postgres',
+        'PASSWORD': 'bharti',
+        'PORT': '5432',
+
+    }
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
