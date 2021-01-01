@@ -80,12 +80,19 @@ class CreateLabel(generics.ListCreateAPIView):
     queryset = Labels.objects.all()
 
     def perform_create(self,serializer):
-        return serializer.save(owner=self.request.user)
+        serializer.is_valid(raise_exception=True)
+        label=serializer.save(owner=self.request.user)
+        data = serializer.data
+        note_details=data['notes']
+        notes=Notes.objects.create(label=label,title=note_details['title'], content=note_details['content'],owner=self.request.user)
+        notes.save()
+        return label
     
     def get_queryset(self):
         return self.queryset.filter(owner=self.request.user)
 
 
-# class AddLabels(generics.RetrieveUpdateAPIView):
-#     permission_classes = (permissions.IsAuthenticated,)
-#     serializer_class = AddLabelSerializer
+class AddLabelsToNotes(generics.RetrieveUpdateAPIView):
+    permission_classes = (permissions.IsAuthenticated,)
+    serializer_class = AddLabelSerializer
+
