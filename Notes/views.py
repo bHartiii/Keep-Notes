@@ -1,7 +1,7 @@
 from django.shortcuts import render
-from Notes.serializers import NotesSerializer, ArchiveNotesSerializer, TrashSerializer
-from Notes.permissions import IsOwner
-from Notes.models import Notes
+from Notes.serializers import NotesSerializer, ArchiveNotesSerializer, TrashSerializer, AddLabelSerializer, CreateLabelSerializer
+from Notes.permissions import IsOwner, IsLabel
+from Notes.models import Notes, Labels
 from rest_framework import generics, permissions
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from rest_framework.response import Response
@@ -12,9 +12,7 @@ class NotesListAPIView(generics.ListCreateAPIView):
     serializer_class = NotesSerializer
     queryset = Notes.objects.all()
     permission_classes = (permissions.IsAuthenticated, )
-    authentication_class = JSONWebTokenAuthentication
-
-
+    
     def perform_create(self,serializer):
         return serializer.save(owner=self.request.user)
     
@@ -76,3 +74,18 @@ class TrashList(generics.ListAPIView):
     def get_queryset(self):
         return self.queryset.filter(owner=self.request.user, isDelete=True)
 
+class CreateLabel(generics.ListCreateAPIView):
+    permission_classes = (permissions.IsAuthenticated,)
+    serializer_class = CreateLabelSerializer
+    queryset = Labels.objects.all()
+
+    def perform_create(self,serializer):
+        return serializer.save(owner=self.request.user)
+    
+    def get_queryset(self):
+        return self.queryset.filter(owner=self.request.user)
+
+
+# class AddLabels(generics.RetrieveUpdateAPIView):
+#     permission_classes = (permissions.IsAuthenticated,)
+#     serializer_class = AddLabelSerializer

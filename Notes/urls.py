@@ -1,6 +1,6 @@
 from django.urls import path
 from django.conf.urls import url
-from Notes.views import NotesListAPIView, NotesDetails, NotesListAPIView, ArchiveNotesList, ArchiveNote, TrashList, Trash
+from Notes.views import NotesListAPIView, NotesDetails, NotesListAPIView, ArchiveNotesList, ArchiveNote, TrashList, Trash, CreateLabel
 
 
 
@@ -11,4 +11,5 @@ urlpatterns = [
     path('archive/<int:id>', ArchiveNote.as_view(), name='archive'),
     path('trash-note/<int:id>', Trash.as_view(), name='trash'),
     path('trash-list/',TrashList.as_view(), name='trash-list'),
+    path('create-label/', CreateLabel.as_view(), name='craete-label'),
 ]
