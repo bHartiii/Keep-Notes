@@ -167,3 +167,31 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_HOST_USER = 'abc@gmail.com'
 EMAIL_HOST_PASSWORD = '***'
+
+LOGGING = {
+    'version':1, 
+    'loggers' : {
+        'django' : {
+            'handlers':['file'],
+            'level' : 'DEBUG'
+        }
+    },
+    'handlers' : {
+        'file': {
+            'level': 'INFO',
+            'class':'logging.FileHandler',
+            'filename':'./log/keepnotes.log',
+            'formatter':'simple',
+        },
+        'console': {
+            'class': 'logging.StreamHandler',
+            'level':'DEBUG'
+        },
+    },
+    'formatters':{
+        'simple':{
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{'
+        }
+    }
+}
