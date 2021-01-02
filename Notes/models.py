@@ -11,7 +11,7 @@ class Notes(models.Model):
     title=models.TextField()
     content=models.TextField(db_index=True)
     owner=models.ForeignKey(to=User, on_delete=models.CASCADE)
-    label = models.ForeignKey(to=Labels, on_delete=models.CASCADE)
+    label = models.ManyToManyField(to=Labels, default=2)
     isArchive = models.BooleanField(default=False)
     isDelete = models.BooleanField(default=False)
     date = models.DateTimeField(auto_now_add=True, null=False, blank=False)

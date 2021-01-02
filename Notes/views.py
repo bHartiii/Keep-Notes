@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from Notes.serializers import NotesSerializer, ArchiveNotesSerializer, TrashSerializer, AddLabelSerializer, CreateLabelSerializer
+from Notes.serializers import NotesSerializer, ArchiveNotesSerializer, TrashSerializer, AddLabelSerializer, CreateAndListLabelSerializer
 from Notes.permissions import IsOwner, IsLabel
 from Notes.models import Notes, Labels
 from rest_framework import generics, permissions
@@ -74,9 +74,9 @@ class TrashList(generics.ListAPIView):
     def get_queryset(self):
         return self.queryset.filter(owner=self.request.user, isDelete=True)
 
-class CreateLabel(generics.ListCreateAPIView):
+class CreateAndListLabel(generics.ListCreateAPIView):
     permission_classes = (permissions.IsAuthenticated,)
-    serializer_class = CreateLabelSerializer
+    serializer_class = CreateAndListLabelSerializer
     queryset = Labels.objects.all()
 
     def perform_create(self,serializer):
@@ -93,6 +93,18 @@ class CreateLabel(generics.ListCreateAPIView):
 
 
 class AddLabelsToNotes(generics.RetrieveUpdateAPIView):
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated,IsOwner)
     serializer_class = AddLabelSerializer
+    queryset = Notes.objects.all()
+    lookup_field="id"
 
+    def get_queryset(self):
+        return self.queryset.filter(owner=self.request.user)
+    
+    def perform_create(self,serializer):
+        serializer.is_valid(raise_exception=True)
+        return serializer.save(owner=self.request.user)
+        
+
+
+    

@@ -5,20 +5,16 @@ from Notes.models import Notes, Labels
 class NotesSerializer(serializers.ModelSerializer):
     class Meta:
         model= Notes
-        fields=['title','content','isArchive','isDelete']
+        fields=['title','content','isArchive','isDelete','label']
         extra_kwargs = {'isDelete': {'read_only': True},'isArchive': {'read_only': True}}  
 
-    
-class AddLabelSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Notes
-        fields='__all__'
 
-class CreateLabelSerializer(serializers.ModelSerializer):
-    notes = NotesSerializer(required=False, default=None)
+class CreateAndListLabelSerializer(serializers.ModelSerializer):
+    notes = NotesSerializer(required=False)
     class Meta:
         model = Labels
-        fields=['name','notes']
+        fields=['name','id','notes']
+        extra_kwargs = {'id': {'read_only': True}}
         def validate(self, attrs):
             name = attrs.get('name','')
             return attrs
@@ -27,6 +23,16 @@ class CreateLabelSerializer(serializers.ModelSerializer):
             note_data= validated_data.pop('notes')
             label = Labels.objects.create(**validated_data)
             return label
+
+class AddLabelSerializer(serializers.ModelSerializer):
+    label = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    class Meta:
+        model = Notes
+        fields= ['title','content','label']
+
+        def validate(self, attr):
+            label = attr.get('label','')
+            return attrs
 
 class ArchiveNotesSerializer(serializers.ModelSerializer):
     
