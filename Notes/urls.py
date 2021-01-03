@@ -1,16 +1,19 @@
 from django.urls import path
 from django.conf.urls import url
-from Notes.views import NotesListAPIView, NotesDetails, NotesListAPIView, ArchiveNotesList, ArchiveNote, TrashList, Trash, CreateAndListLabel, AddLabelsToNotes
+from Notes.views import CraeteAndListNotes, NoteDetails, CreateAndListLabels, LabelDetails,  ArchiveNote, NoteToTrash, ArchiveNotesList, TrashList, AddLabelsToNote, ListNotesInLabel
 
 
 
 urlpatterns = [
-    path('notes/',NotesListAPIView.as_view() , name='notes'),
-    path('<int:id>',NotesDetails.as_view() , name='note'),
+    path('notes/',CraeteAndListNotes.as_view() , name='notes'),
+    path('note/<int:id>',NoteDetails.as_view() , name='note'),
+    path('labels/',CreateAndListLabels.as_view() , name='labels'),
+    path('label/<int:id>',LabelDetails.as_view() , name='label'),
+    path('archive-note/<int:id>', ArchiveNote.as_view(), name='archive-note'),
+    path('note-to-trash/<int:id>', NoteToTrash.as_view(), name='note-to-trash'),
     path('archive-list/', ArchiveNotesList.as_view(), name='archive-list'),
-    path('archive/<int:id>', ArchiveNote.as_view(), name='archive'),
-    path('trash-note/<int:id>', Trash.as_view(), name='trash'),
     path('trash-list/',TrashList.as_view(), name='trash-list'),
-    path('create-label/', CreateAndListLabel.as_view(), name='craete-label'),
-    path('add-label/<int:id>', AddLabelsToNotes.as_view(), name='add-label')
+    path('add-label/<int:id>', AddLabelsToNote.as_view(), name='add-label'),
+    path('list-notes-in-label/<int:id>', ListNotesInLabel.as_view(), name='list-notes-in-label'),
+    
 ]

@@ -1,6 +1,6 @@
 from django.shortcuts import render
-from Notes.serializers import NotesSerializer, ArchiveNotesSerializer, TrashSerializer, AddLabelSerializer, CreateAndListLabelSerializer
-from Notes.permissions import IsOwner, IsLabel
+from Notes.serializers import NotesSerializer, LabelsSerializer, ArchiveNotesSerializer, TrashSerializer, AddLabelsToNoteSerializer
+from Notes.permissions import IsOwner
 from Notes.models import Notes, Labels
 from rest_framework import generics, permissions
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 # Create your views here.
 
-class NotesListAPIView(generics.ListCreateAPIView):
+class CraeteAndListNotes(generics.ListCreateAPIView):
     serializer_class = NotesSerializer
     queryset = Notes.objects.all()
     permission_classes = (permissions.IsAuthenticated, )
@@ -20,7 +20,7 @@ class NotesListAPIView(generics.ListCreateAPIView):
         return self.queryset.filter(owner=self.request.user,isArchive=False, isDelete=False)
 
 
-class NotesDetails(generics.RetrieveUpdateDestroyAPIView):
+class NoteDetails(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = NotesSerializer
     queryset = Notes.objects.all()
     permission_classes = (permissions.IsAuthenticated, IsOwner)
@@ -32,12 +32,29 @@ class NotesDetails(generics.RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         return self.queryset.filter(owner=self.request.user,isDelete=False)
 
-class ArchiveNotesList(generics.ListAPIView):
-    serializer_class = ArchiveNotesSerializer
-    queryset = Notes.objects.all()
+class CreateAndListLabels(generics.ListCreateAPIView):
+    serializer_class = LabelsSerializer
+    queryset = Labels.objects.all()
+    permission_classes = (permissions.IsAuthenticated, )
+    
+    def perform_create(self,serializer):
+        return serializer.save(owner=self.request.user)
     
     def get_queryset(self):
-        return self.queryset.filter(owner=self.request.user,isArchive=True, isDelete=False)
+        return self.queryset.filter(owner=self.request.user)
+
+
+class LabelDetails(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = LabelsSerializer
+    queryset = Labels.objects.all()
+    permission_classes = (permissions.IsAuthenticated, IsOwner)
+    lookup_field="id"
+
+    def perform_create(self,serializer):
+        return serializer.save(owner=self.request.user)
+    
+    def get_queryset(self):
+        return self.queryset.filter(owner=self.request.user)
 
 class ArchiveNote(generics.RetrieveUpdateAPIView):
     serializer_class = ArchiveNotesSerializer
@@ -51,8 +68,7 @@ class ArchiveNote(generics.RetrieveUpdateAPIView):
     def perform_create(self,serializer):
         return serializer.save(owner=self.request.user)
     
-
-class Trash(generics.RetrieveUpdateAPIView):
+class NoteToTrash(generics.RetrieveUpdateAPIView):
     serializer_class = TrashSerializer
     queryset = Notes.objects.all()
     permission_classes = (permissions.IsAuthenticated, IsOwner)
@@ -64,47 +80,40 @@ class Trash(generics.RetrieveUpdateAPIView):
  
     def perform_create(self,serializer):
         return serializer.save(owner=self.request.user)
+
+class ArchiveNotesList(generics.ListAPIView):
+    permission_classes=(permissions.IsAuthenticated, IsOwner)
+    serializer_class = ArchiveNotesSerializer
+    queryset = Notes.objects.all()
+    
+    def get_queryset(self):
+        return self.queryset.filter(owner=self.request.user,isArchive=True, isDelete=False)
     
 class TrashList(generics.ListAPIView):
     permission_classes=(permissions.IsAuthenticated, IsOwner)
     serializer_class=TrashSerializer
     queryset = Notes.objects.all()
-    lookup_field='id'
 
     def get_queryset(self):
         return self.queryset.filter(owner=self.request.user, isDelete=True)
 
-class CreateAndListLabel(generics.ListCreateAPIView):
-    permission_classes = (permissions.IsAuthenticated,)
-    serializer_class = CreateAndListLabelSerializer
-    queryset = Labels.objects.all()
-
-    def perform_create(self,serializer):
-        serializer.is_valid(raise_exception=True)
-        label=serializer.save(owner=self.request.user)
-        data = serializer.data
-        note_details=data['notes']
-        notes=Notes.objects.create(label=label,title=note_details['title'], content=note_details['content'],owner=self.request.user)
-        notes.save()
-        return label
-    
-    def get_queryset(self):
-        return self.queryset.filter(owner=self.request.user)
-
-
-class AddLabelsToNotes(generics.RetrieveUpdateAPIView):
+class AddLabelsToNote(generics.RetrieveUpdateAPIView):
     permission_classes = (permissions.IsAuthenticated,IsOwner)
-    serializer_class = AddLabelSerializer
+    serializer_class = AddLabelsToNoteSerializer
     queryset = Notes.objects.all()
     lookup_field="id"
 
-    def get_queryset(self):
-        return self.queryset.filter(owner=self.request.user)
-    
     def perform_create(self,serializer):
         serializer.is_valid(raise_exception=True)
         return serializer.save(owner=self.request.user)
-        
-
-
     
+    def get_queryset(self):
+        return self.queryset.filter(owner=self.request.user)
+
+class ListNotesInLabel(generics.ListAPIView):
+    permission_classes = (permissions.IsAuthenticated,IsOwner)
+    serializer_class = AddLabelsToNoteSerializer
+    queryset = Notes.objects.all()
+    lookup_field='id'
+    def get_queryset(self):
+        return self.queryset.filter(owner=self.request.user,label=self.kwargs[self.lookup_field])
