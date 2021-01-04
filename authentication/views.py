@@ -71,15 +71,12 @@ class LoginAPIView(generics.GenericAPIView):
     serializer_class = LoginSerializer
     permission_classes = (AllowAny,)
     
-    
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         user_data = serializer.data
-        user = User.objects.get(email=user_data['email'], password=user_data['password'])
-        payload = jwt_payload_handler(user)
-        token = jwt.encode(payload, settings.SECRET_KEY)
-        user_data['token'] = token 
+        user = authenticate(email=user_data['email'], password=user_data['password'])
+        user_data['username'] = user.username
         login(request, user)
         return Response(user_data, status=status.HTTP_200_OK)
     

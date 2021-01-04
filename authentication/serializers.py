@@ -56,9 +56,10 @@ class LoginSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         email= attrs.get('email','')
         password = attrs.get('password','')
+        username = attrs.get('username','')
         try:
-            user = User.objects.get(email=email, password=password)
-            if not user:
+            user = authenticate(email=email, password=password)
+            if user is None:
                 raise AuthenticationFailed("Invalid credentials given!!!")
             if not user.is_active:
                 raise AuthenticationFailed("Account is deactivated!!!")
@@ -68,11 +69,7 @@ class LoginSerializer(serializers.ModelSerializer):
         except serializers.ValidationError as identifier:
             return {'error':"Please provide email and password"}
 
-        return {
-            'email':user.email,
-            'username':user.username,
-            'password':user.password,
-        }
+        return attrs
 
 class ResetPasswordSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(max_length=255, min_length=3)
