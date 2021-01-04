@@ -38,6 +38,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = []
     objects = UserManager()
 
+    def get_email(self):
+        return self.email 
+
+
     def __str__(self):
         return self.email  
 
@@ -47,6 +51,9 @@ class UserProfile(models.Model):
     user = models.OneToOneField(to=User, on_delete=models.CASCADE, related_name='profile')
     first_name = models.CharField(max_length=50, unique=False)
     last_name = models.CharField(max_length=50, unique=False)
-    DOB = models.DateField(max_length=8)
+    DOB = models.DateField(max_length=8,null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     image = models.ImageField(upload_to='profile_picture/',max_length=255, null=True, blank=True)
+
+    def get_last_name(self):
+        return self.last_name

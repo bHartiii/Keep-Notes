@@ -39,7 +39,7 @@ class RegisterView(generics.GenericAPIView):
             email_body = 'Hii \n'+user.username+' Use this below to verify your email \n'+verification_link
             data = {'email_body':email_body ,'to_email':user.email, 'email_subject':'Verify you email'}
             Util.send_email(data) 
-            return Response(user_data,status=status.HTTP_201_CREATED)
+            return Response(serializer.data,status=status.HTTP_201_CREATED)
         except Exception as e:
             raise e
 
