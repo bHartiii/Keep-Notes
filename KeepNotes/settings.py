@@ -31,7 +31,7 @@ AUTH_USER_MODEL = 'authentication.user'
 
 INSTALLED_APPS = [
     'rest_framework',
-    'authentication',
+    'authentication.apps.AuthenticationConfig',
     'Notes',
     'django.contrib.admin',
     'django.contrib.auth',

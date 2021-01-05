@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import (AbstractBaseUser, BaseUserManager, PermissionsMixin )
 import uuid
+
  
 class UserManager(BaseUserManager):
  
@@ -8,7 +9,8 @@ class UserManager(BaseUserManager):
         if not email:
             raise ValueError('Users Must Have an email address')
 
-        user = self.model(email=self.normalize_email(email), username=username, password=password)
+        user = self.model(email=self.normalize_email(email), username=username)
+        user.set_password(password)
         user.save(using=self._db)
         return user
 
@@ -38,6 +40,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = []
     objects = UserManager()
 
+    def get_email(self):
+        return self.email 
+
+
     def __str__(self):
         return self.email  
 
@@ -45,8 +51,16 @@ class User(AbstractBaseUser, PermissionsMixin):
 class UserProfile(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(to=User, on_delete=models.CASCADE, related_name='profile')
-    first_name = models.CharField(max_length=50, unique=False)
-    last_name = models.CharField(max_length=50, unique=False)
-    DOB = models.DateField(max_length=8)
+    first_name = models.CharField(max_length=50, unique=False, blank=True)
+    last_name = models.CharField(max_length=50, unique=False, blank=True)
+    DOB = models.DateField(max_length=8,null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     image = models.ImageField(upload_to='profile_picture/',max_length=255, null=True, blank=True)
+
+    def get_last_name(self):       
+        return self.last_name
+
+    def __str__(self):
+        return str(self.user)
+
+   

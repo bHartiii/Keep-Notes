@@ -10,12 +10,18 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = UserProfile
         fields = ['first_name', 'last_name', 'DOB','image','user_id']
 
+    def validate(self, attrs):
+        first_name = attrs.get('first_name','')
+        last_name = attrs.get('last_name','')
+        DOB = attrs.get('DOB','')
+        image = attrs.get('image','')
+        return attrs
+
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(max_length=68,  min_length=6, write_only=True)
-    profile = UserProfileSerializer(required=False)
     class Meta:
         model=User
-        fields = ['email', 'username', 'password','profile']
+        fields = ['email', 'username', 'password']
     
     def validate(self, attrs):
         email = attrs.get('email','')
@@ -25,15 +31,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        profile_data = validated_data.pop('profile')
         user = User.objects.create_user(**validated_data)
-        UserProfile.objects.create(
-            user=user,
-            first_name=profile_data['first_name'],
-            last_name=profile_data['last_name'],
-            DOB=profile_data['DOB'],
-            image = profile_data['image'],
-        )
         return user
 
 
@@ -56,9 +54,10 @@ class LoginSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         email= attrs.get('email','')
         password = attrs.get('password','')
+        username = attrs.get('username','')
         try:
-            user = User.objects.get(email=email, password=password)
-            if not user:
+            user = authenticate(email=email, password=password)
+            if user is None:
                 raise AuthenticationFailed("Invalid credentials given!!!")
             if not user.is_active:
                 raise AuthenticationFailed("Account is deactivated!!!")
@@ -68,11 +67,7 @@ class LoginSerializer(serializers.ModelSerializer):
         except serializers.ValidationError as identifier:
             return {'error':"Please provide email and password"}
 
-        return {
-            'email':user.email,
-            'username':user.username,
-            'password':user.password,
-        }
+        return attrs
 
 class ResetPasswordSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(max_length=255, min_length=3)

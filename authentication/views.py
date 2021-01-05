@@ -14,7 +14,7 @@ from drf_yasg import openapi
 from rest_framework_jwt.utils import jwt_payload_handler
 import pyshorteners
 from rest_framework.permissions import AllowAny
-
+from authentication.permissions import IsOwner
 
 
 class RegisterView(generics.GenericAPIView):
@@ -30,6 +30,7 @@ class RegisterView(generics.GenericAPIView):
         try:
             payload = jwt_payload_handler(user)
             token = jwt.encode(payload,settings.SECRET_KEY).decode('UTF-8')
+            user_data['token'] = token
             current_site = get_current_site(request).domain
             relativeLink = reverse('verify-email')
         
@@ -42,7 +43,6 @@ class RegisterView(generics.GenericAPIView):
             return Response(user_data,status=status.HTTP_201_CREATED)
         except Exception as e:
             raise e
-
 
 class VerifyEmail(generics.GenericAPIView):
     serializer_class = EmailVerificationSerializer
@@ -71,15 +71,12 @@ class LoginAPIView(generics.GenericAPIView):
     serializer_class = LoginSerializer
     permission_classes = (AllowAny,)
     
-    
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         user_data = serializer.data
-        user = User.objects.get(email=user_data['email'], password=user_data['password'])
-        payload = jwt_payload_handler(user)
-        token = jwt.encode(payload, settings.SECRET_KEY)
-        user_data['token'] = token 
+        user = authenticate(email=user_data['email'], password=user_data['password'])
+        user_data['username'] = user.username
         login(request, user)
         return Response(user_data, status=status.HTTP_200_OK)
     
@@ -129,12 +126,12 @@ class NewPassword(generics.GenericAPIView):
         except jwt.ExpiredSignatureError as identifier:
             return Response({'error':'Link is Expired'}, status=status.HTTP_400_BAD_REQUEST)
         except jwt.exceptions.DecodeError as identifier:
-            return Response({'error':'Invalid Token'}, status=status.HTTP_400_BAD_REQUEST)
+            return  
 
 
 class LogoutView(generics.GenericAPIView):
 
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated,IsOwner)
     def get(self, request):
         logout(request)
         return Response({"success": "Successfully logged out."},status=status.HTTP_200_OK)
@@ -142,13 +139,13 @@ class LogoutView(generics.GenericAPIView):
 
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
-    permission_classes=(permissions.IsAuthenticated,)
+    permission_classes=(permissions.IsAuthenticated,IsOwner)
     serializer_class = UserProfileSerializer
     queryset=UserProfile.objects.all()
 
     def get_object(self):
-        try:
-            return self.request.user.profile
-        except Exception as e:
-            pass
+        return self.request.user.profile
+
+    def perform_create(self):
+        return serializer.save(user=self.request.user)
     
