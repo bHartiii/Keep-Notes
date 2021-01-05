@@ -10,6 +10,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = UserProfile
         fields = ['first_name', 'last_name', 'DOB','image','user_id']
 
+    def validate(self, attrs):
+        first_name = attrs.get('first_name','')
+        last_name = attrs.get('last_name','')
+        DOB = attrs.get('DOB','')
+        image = attrs.get('image','')
+        return attrs
+
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(max_length=68,  min_length=6, write_only=True)
     profile = UserProfileSerializer(required=False)

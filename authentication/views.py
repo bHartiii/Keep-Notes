@@ -14,7 +14,7 @@ from drf_yasg import openapi
 from rest_framework_jwt.utils import jwt_payload_handler
 import pyshorteners
 from rest_framework.permissions import AllowAny
-
+from authentication.permissions import IsOwner
 
 
 class RegisterView(generics.GenericAPIView):
@@ -132,7 +132,7 @@ class NewPassword(generics.GenericAPIView):
 
 class LogoutView(generics.GenericAPIView):
 
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated,IsOwner)
     def get(self, request):
         logout(request)
         return Response({"success": "Successfully logged out."},status=status.HTTP_200_OK)
@@ -140,13 +140,13 @@ class LogoutView(generics.GenericAPIView):
 
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
-    permission_classes=(permissions.IsAuthenticated,)
+    permission_classes=(permissions.IsAuthenticated,IsOwner)
     serializer_class = UserProfileSerializer
     queryset=UserProfile.objects.all()
 
     def get_object(self):
-        try:
-            return self.request.user.profile
-        except Exception as e:
-            pass
+        return self.request.user.profile
+
+    def perform_create(self):
+        return serializer.save(user=self.request.user)
     
