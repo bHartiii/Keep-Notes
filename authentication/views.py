@@ -44,7 +44,6 @@ class RegisterView(generics.GenericAPIView):
         except Exception as e:
             raise e
 
-
 class VerifyEmail(generics.GenericAPIView):
     serializer_class = EmailVerificationSerializer
     permission_classes = (AllowAny,)
@@ -127,7 +126,7 @@ class NewPassword(generics.GenericAPIView):
         except jwt.ExpiredSignatureError as identifier:
             return Response({'error':'Link is Expired'}, status=status.HTTP_400_BAD_REQUEST)
         except jwt.exceptions.DecodeError as identifier:
-            return Response({'error':'Invalid Token'}, status=status.HTTP_400_BAD_REQUEST)
+            return  
 
 
 class LogoutView(generics.GenericAPIView):
