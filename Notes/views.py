@@ -11,7 +11,7 @@ from rest_framework.response import Response
 class CraeteAndListNotes(generics.ListCreateAPIView):
     serializer_class = NotesSerializer
     queryset = Notes.objects.all()
-    permission_classes = (permissions.IsAuthenticated, )
+    permission_classes = (permissions.IsAuthenticated,)
     
     def perform_create(self,serializer):
         return serializer.save(owner=self.request.user)

@@ -7,9 +7,8 @@ class NotesTest(TestCase):
 
     def setUp(self):
         self.user=User.objects.create(email='bhartimali@gmail.com',username='bharti',password='bharti123')
-        UserProfile.objects.create(user=self.user,first_name='Bharti',last_name='Mali')
-        Labels.objects.create(name='label 1', owner=self.user)
-        Notes.objects.create(title='first note', content='this is my first note', owner=self.user)
+        label = Labels.objects.create(name='label 1', owner=self.user)
+        note = Notes.objects.create(title='first note', content='this is my first note', owner=self.user)
 
     def test_create_note(self):
         note = Notes.objects.get(title='first note')

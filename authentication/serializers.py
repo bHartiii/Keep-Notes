@@ -8,7 +8,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = UserProfile
-        fields = ['first_name', 'last_name', 'DOB','image','user_id']
+        fields = ['first_name', 'last_name', 'DOB','image']
 
     def validate(self, attrs):
         first_name = attrs.get('first_name','')
