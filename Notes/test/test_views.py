@@ -440,3 +440,33 @@ class NotesAPITest(TestCase):
             self.assertEqual(response.data, serializer.data)
         else:
             self.assertNotEqual(response.data, serializer.data)
+
+### Test cases for trash-list API
+
+    def test_get_trash_note_list_without_login(self):
+        response = self.client.get(reverse('trash-list'), content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_get_trash_note_list_after_login_with_invalid_credentials(self):
+        self.client.post(reverse('login'),data=json.dumps(self.invalid_credentials), content_type='application/json')
+        response = self.client.get(reverse('trash-list'), content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_get_trash_note_list_after_login(self):
+        self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type='application/json')
+        notes = Notes.objects.filter(owner=self.user1.id, isDelete=True)
+        serializer = NotesSerializer(notes, many=True)
+        response = self.client.get(reverse('trash-list'), content_type='application/json')
+        self.assertEqual(response.data, serializer.data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_get_trash_note_list_of_other_user_after_login_with_valid_credentials(self):
+        self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type='application/json')
+        notes = Notes.objects.filter(owner=self.user2.id, isDelete=True)
+        serializer = NotesSerializer(notes, many=True)
+        response = self.client.get(reverse('trash-list'), content_type='application/json')
+        if not response.data:
+            self.assertEqual(response.data, serializer.data)
+        else:
+            self.assertNotEqual(response.data, serializer.data)
+
