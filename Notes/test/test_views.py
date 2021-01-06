@@ -3,7 +3,7 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from authentication.models import User, UserProfile
 from Notes.models import Notes, Labels
-from ..serializers import NotesSerializer, LabelsSerializer, ArchiveNotesSerializer, TrashSerializer
+from ..serializers import NotesSerializer, LabelsSerializer, ArchiveNotesSerializer, TrashSerializer, AddLabelsToNoteSerializer
 import json
 from django.views.decorators.csrf import csrf_exempt
 
@@ -23,7 +23,7 @@ class NotesAPITest(TestCase):
         self.note_for_user2 = Notes.objects.create(title='user2', content='note for user 2', owner=self.user2)
         self.label_for_user1 = Labels.objects.create(name='label1', owner=self.user1)
         self.label_for_user2 = Labels.objects.create(name='label2', owner=self.user2)
-
+        self.note_for_user1.label.add(self.label_for_user1.id)
         self.valid_payload = {
             'title': 'test',
             'content': 'test'
@@ -520,10 +520,37 @@ class NotesAPITest(TestCase):
     def test_add_label_to_note_with_invalid_payload_after_login(self):
         self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type='application/json')
         response = self.client.put(reverse('add-label', kwargs={'id': self.note_for_user1.id}), data=json.dumps(self.invalid_add_label_payload),content_type='application/json')
-        print(response.data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_add_label_to_other_user_note_after_login(self):
         self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type='application/json')
         response = self.client.put(reverse('add-label', kwargs={'id': self.note_for_user2.id}), data=json.dumps(self.valid_add_label_payload),content_type='application/json')
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+### Test cases for list-notes-in-label
+
+    def test_get_note_list_in_label_without_login(self):
+        response = self.client.get(reverse('list-notes-in-label', kwargs={'id': self.label_for_user1.id}), content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_get_note_list_in_label_after_login_with_invalid_credentials(self):
+        self.client.post(reverse('login'),data=json.dumps(self.invalid_credentials), content_type='application/json')
+        response = self.client.get(reverse('list-notes-in-label', kwargs={'id': self.label_for_user1.id}), content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_get_note_list_in_label_after_login(self):
+        self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type='application/json')
+        notes = Notes.objects.filter(owner=self.user1.id, label=self.label_for_user1.id)
+        serializer = AddLabelsToNoteSerializer(notes, many=True)
+        response = self.client.get(reverse('list-notes-in-label', kwargs={'id': self.label_for_user1.id}), content_type='application/json')
+        self.assertEqual(response.data, serializer.data)
+
+    def test_get_note_list_in_label_of_other_user_after_login(self):
+        self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type='application/json')
+        notes = Notes.objects.filter(owner=self.user2.id, label=self.label_for_user2.id)
+        serializer = AddLabelsToNoteSerializer(notes, many=True)
+        response = self.client.get(reverse('list-notes-in-label', kwargs={'id': self.label_for_user1.id}), content_type='application/json')
+        if (not response.data) and (not serializer.data):
+            self.assertEqual(response.data, serializer.data)
+        else:
+            self.assertNotEqual(response.data, serializer.data)
