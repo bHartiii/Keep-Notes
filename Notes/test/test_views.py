@@ -81,7 +81,12 @@ class GetNotesAPITest(TestCase):
     def test_create_notes_with_valid_payload_without_login(self):
         response = self.client.post(reverse('notes'),data=json.dumps(self.valid_payload), content_type='application/json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-    
+
+    def test_create_notes_with_valid_payload_after_login(self):
+        self.client.post(reverse('login'),data=json.dumps(self.invalid_credentials), content_type='application/json')
+        response = self.client.post(reverse('notes'),data=json.dumps(self.valid_payload), content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)    
+
     def test_create_notes_with_valid_payload_after_login(self):
         self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type='application/json')
         response = self.client.post(reverse('notes'),data=json.dumps(self.valid_payload), content_type='application/json')
@@ -116,6 +121,15 @@ class GetNotesAPITest(TestCase):
         response = self.client.get(reverse('note',kwargs={'id': self.note_for_user2.id}))
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
     
+    def test_update_notes_with_valid_payload_without_login(self):
+        response = self.client.put(reverse('note',kwargs={'id':self.note_for_user1.id}), data=json.dumps(self.valid_payload), content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_update_notes_with_valid_payload_after_login_with_invalid_credentials(self):
+        self.client.post(reverse('login'),data=json.dumps(self.invalid_credentials), content_type='application/json')
+        response = self.client.put(reverse('note',kwargs={'id':self.note_for_user1.id}), data=json.dumps(self.valid_payload), content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
     def test_update_notes_with_valid_payload_after_login(self):
         self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type='application/json')
         response = self.client.put(reverse('note',kwargs={'id':self.note_for_user1.id}), data=json.dumps(self.valid_payload), content_type='application/json')
@@ -126,22 +140,55 @@ class GetNotesAPITest(TestCase):
         response = self.client.put(reverse('note',kwargs={'id':self.note_for_user1.id}), data=json.dumps(self.invalid_payload), content_type='application/json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_delete_note_after_login(self):
+    def test_update_notes_with_other_user_note_using_valid_payload_after_login(self):
         self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type='application/json')
-        response = self.client.delete(reverse('note',kwargs={'id':self.note_for_user1.id}), content_type='application/json')
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-
-
-    def test_delete_note_of_other_user_after_login(self):
-        self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type='application/json')
-        response = self.client.delete(reverse('note',kwargs={'id':self.label_for_user2.id}), content_type='application/json')
+        response = self.client.put(reverse('note',kwargs={'id':self.note_for_user2.id}), data=json.dumps(self.valid_payload), content_type='application/json')
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_delete_note_without_login(self):
         response = self.client.delete(reverse('note',kwargs={'id':self.note_for_user1.id}), content_type='application/json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_delete_note_after_login_with_invalid_credentials(self):
+        self.client.post(reverse('login'),data=json.dumps(self.invalid_credentials), content_type='application/json')
+        response = self.client.delete(reverse('note',kwargs={'id':self.note_for_user1.id}), content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_delete_note_after_login(self):
+        self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type='application/json')
+        response = self.client.delete(reverse('note',kwargs={'id':self.note_for_user1.id}), content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_delete_note_of_other_user_after_login(self):
+        self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type='application/json')
+        response = self.client.delete(reverse('note',kwargs={'id':self.label_for_user2.id}), content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
 ### test cases for create and list label: 
+
+    def test_create_label_without_login(self):
+        response = self.client.post(reverse('labels'),data=json.dumps(self.valid_label_payload), content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_create_labels_with_valid_payload_after_login_with_invalid_credentials(self):
+        self.client.post(reverse('login'),data=json.dumps(self.invalid_credentials), content_type='application/json')
+        response = self.client.post(reverse('labels'),data=json.dumps(self.valid_label_payload), content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_create_labels_with_valid_payload_after_login(self):
+        self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type='application/json')
+        response = self.client.post(reverse('labels'),data=json.dumps(self.valid_label_payload), content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_create_labels_with_invalid_payload_after_login(self):
+        self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type='application/json')
+        response = self.client.post(reverse('labels'),data=json.dumps(self.invalid_label_payload), content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_get_all_labels_without_login(self):
+        labels = Labels.objects.filter(owner=self.user1)
+        response = self.client.get(reverse('labels'))
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_get_all_labels_after_login_with_invalid_credentials(self):
         self.client.post(reverse('login'),data=json.dumps(self.invalid_credentials), content_type='application/json')
@@ -156,11 +203,6 @@ class GetNotesAPITest(TestCase):
         self.assertEqual(response.data, serializer.data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test_get_all_labels_without_login(self):
-        labels = Labels.objects.filter(owner=self.user1)
-        response = self.client.get(reverse('labels'))
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
     def test_get_all_labels_of_other_user_after_login(self):
         self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type='application/json')
         labels = Labels.objects.filter(owner=self.user2)
@@ -174,6 +216,11 @@ class GetNotesAPITest(TestCase):
         response = self.client.get(reverse('label',kwargs={'id': self.label_for_user1.id}))
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_get_labels_by_id_after_login_with_invalid_credentials(self):
+        self.client.post(reverse('login'),data=json.dumps(self.invalid_credentials), content_type='application/json')
+        response = self.client.get(reverse('label',kwargs={'id': self.label_for_user1.id}))
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
     def test_get_labels_by_id_after_login(self):
         self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type='application/json')
         labels = Labels.objects.get(id=self.label_for_user1.id)
@@ -182,15 +229,23 @@ class GetNotesAPITest(TestCase):
         self.assertEqual(response.data, serializer.data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test_create_label_without_login(self):
-        response = self.client.post(reverse('labels'),data=json.dumps(self.valid_label_payload), content_type='application/json')
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-    
-    def test_create_labels_with_valid_payload_after_login(self):
+    def test_get_labels_of_other_user_by_id_after_login(self):
         self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type='application/json')
-        response = self.client.post(reverse('labels'),data=json.dumps(self.valid_label_payload), content_type='application/json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        labels = Labels.objects.get(id=self.label_for_user2.id)
+        serializer = LabelsSerializer(labels)
+        response = self.client.get(reverse('label',kwargs={'id': self.label_for_user2.id}))
+        self.assertNotEqual(response.data, serializer.data)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
     
+    def test_update_label_without_login(self):
+        response = self.client.put(reverse('label',kwargs={'id':self.label_for_user1.id}), data=json.dumps(self.valid_label_payload), content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_update_label_with_valid_payload_after_login_with_invalid_credentials(self):
+        self.client.post(reverse('login'),data=json.dumps(self.invalid_credentials), content_type='application/json')
+        response = self.client.put(reverse('label',kwargs={'id':self.label_for_user1.id}), data=json.dumps(self.valid_label_payload), content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
     def test_update_label_with_valid_payload_after_login(self):
         self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type='application/json')
         response = self.client.put(reverse('label',kwargs={'id':self.label_for_user1.id}), data=json.dumps(self.valid_label_payload), content_type='application/json')
@@ -200,6 +255,20 @@ class GetNotesAPITest(TestCase):
         self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type='application/json')
         response = self.client.put(reverse('label',kwargs={'id':self.label_for_user1.id}), data=json.dumps(self.invalid_label_payload), content_type='application/json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_update_label_of_other_user_with_valid_payload_after_login(self):
+        self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type='application/json')
+        response = self.client.put(reverse('label',kwargs={'id':self.label_for_user2.id}), data=json.dumps(self.valid_label_payload), content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_delete_note_without_login(self):
+        response = self.client.delete(reverse('label',kwargs={'id':self.label_for_user1.id}), content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+    
+    def test_delete_label_after_login_with_invalid_credentials(self):
+        self.client.post(reverse('login'),data=json.dumps(self.invalid_credentials), content_type='application/json')
+        response = self.client.delete(reverse('label',kwargs={'id':self.label_for_user1.id}), content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_delete_label_after_login(self):
         self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type='application/json')
@@ -211,6 +280,6 @@ class GetNotesAPITest(TestCase):
         response = self.client.delete(reverse('label',kwargs={'id':self.label_for_user2.id}), content_type='application/json')
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    def test_delete_note_without_login(self):
-        response = self.client.delete(reverse('label',kwargs={'id':self.label_for_user1.id}), content_type='application/json')
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+    
