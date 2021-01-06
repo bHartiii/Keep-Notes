@@ -337,4 +337,46 @@ class NotesAPITest(TestCase):
         response = self.client.get(reverse('archive-note', kwargs={'id': self.note_for_user2.id}), content_type='application/json')
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
+### Test cases for NoteToTrash API (Move note to trash)
+
+    def test_move_note_to_trash_without_login(self):
+        response = self.client.put(reverse('note-to-trash', kwargs={'id': self.note_for_user1.id}), content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+    def test_move_note_to_trash_after_login_with_invalid_credentials(self):
+        self.client.post(reverse('login'),data=json.dumps(self.invalid_credentials), content_type='application/json')
+        response = self.client.put(reverse('note-to-trash', kwargs={'id': self.note_for_user1.id}), content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_move_note_to_trash_after_login_with_valid_credentials(self):
+        self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type='application/json')
+        response = self.client.put(reverse('note-to-trash', kwargs={'id': self.note_for_user1.id}), content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_move_note_to_trash_of_other_user_after_login_with_valid_credentials(self):
+        self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type='application/json')
+        response = self.client.put(reverse('note-to-trash', kwargs={'id': self.note_for_user2.id}), content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+### Test cases to get note of trash details by id:
+
+    def test_get_note_in_trash_without_login(self):
+        response = self.client.get(reverse('note-to-trash', kwargs={'id': self.note_for_user1.id}), content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_get_note_in_trash_of_other_user_after_login_with_invalid_credentials(self):
+        self.client.post(reverse('login'),data=json.dumps(self.invalid_credentials), content_type='application/json')
+        response = self.client.get(reverse('note-to-trash', kwargs={'id': self.note_for_user2.id}), content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_get_note_in_trash_of_other_user_after_login(self):
+        self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type='application/json')
+        response = self.client.get(reverse('note-to-trash', kwargs={'id': self.note_for_user1.id}), content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_get_note_in_trash_of_other_user_after_login(self):
+        self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type='application/json')
+        response = self.client.get(reverse('note-to-trash', kwargs={'id': self.note_for_user2.id}), content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
     
