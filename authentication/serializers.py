@@ -10,13 +10,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = UserProfile
         fields = ['first_name', 'last_name', 'DOB','image']
 
-    def validate(self, attrs):
-        first_name = attrs.get('first_name','')
-        last_name = attrs.get('last_name','')
-        DOB = attrs.get('DOB','')
-        image = attrs.get('image','')
-        return attrs
-
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(max_length=68,  min_length=6, write_only=True)
     class Meta:
@@ -24,7 +17,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ['email', 'username', 'password']
     
     def validate(self, attrs):
-        email = attrs.get('email','')
         username = attrs.get('username','')
         if not username.isalnum():
             raise serializers.ValidationError('Username should contain alphanumeric values only')
@@ -54,7 +46,6 @@ class LoginSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         email= attrs.get('email','')
         password = attrs.get('password','')
-        username = attrs.get('username','')
         try:
             user = authenticate(email=email, password=password)
             if user is None:
@@ -64,7 +55,7 @@ class LoginSerializer(serializers.ModelSerializer):
             if not user.is_verified:
                 raise AuthenticationFailed("Email is not verified!!!")
 
-        except serializers.ValidationError as identifier:
+        except serializers.ValidationError:
             return {'error':"Please provide email and password"}
 
         return attrs

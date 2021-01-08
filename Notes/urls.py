@@ -15,5 +15,4 @@ urlpatterns = [
     path('trash-list/',TrashList.as_view(), name='trash-list'),
     path('add-label/<int:id>', AddLabelsToNote.as_view(), name='add-label'),
     path('list-notes-in-label/<int:id>', ListNotesInLabel.as_view(), name='list-notes-in-label'),
-    
 ]

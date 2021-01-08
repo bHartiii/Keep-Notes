@@ -27,22 +27,20 @@ class RegisterView(generics.GenericAPIView):
         serializer.save()
         user_data = serializer.data
         user = User.objects.get(email=user_data['email'])
-        try:
-            payload = jwt_payload_handler(user)
-            token = jwt.encode(payload,settings.SECRET_KEY).decode('UTF-8')
-            user_data['token'] = token
-            current_site = get_current_site(request).domain
-            relativeLink = reverse('verify-email')
+      
+        payload = jwt_payload_handler(user)
+        token = jwt.encode(payload,settings.SECRET_KEY).decode('UTF-8')
+        user_data['token'] = token
+        current_site = get_current_site(request).domain
+        relative_link = reverse('verify-email')
         
-            absurl = 'http://'+current_site+relativeLink+'?token='+str(token)
-            shortener = pyshorteners.Shortener()
-            verification_link = shortener.tinyurl.short(absurl)
-            email_body = 'Hii \n'+user.username+' Use this below to verify your email \n'+verification_link
-            data = {'email_body':email_body ,'to_email':user.email, 'email_subject':'Verify you email'}
-            Util.send_email(data) 
-            return Response(user_data,status=status.HTTP_201_CREATED)
-        except Exception as e:
-            raise e
+        absurl = 'http://'+current_site+relative_link+'?token='+str(token)
+        shortener = pyshorteners.Shortener()
+        verification_link = shortener.tinyurl.short(absurl)
+        email_body = 'Hii \n'+user.username+' Use this below to verify your email \n'+verification_link
+        data = {'email_body':email_body ,'to_email':user.email, 'email_subject':'Verify you email'}
+        Util.send_email(data) 
+        return Response(user_data,status=status.HTTP_201_CREATED)
 
 class VerifyEmail(generics.GenericAPIView):
     serializer_class = EmailVerificationSerializer
@@ -61,9 +59,9 @@ class VerifyEmail(generics.GenericAPIView):
                 user.is_active=True
                 user.save()
             return Response({'email':'Succefully Activated'},status=status.HTTP_200_OK)
-        except jwt.ExpiredSignatureError as identifier:
+        except jwt.ExpiredSignatureError:
             return Response({'error':'Activation Expired'}, status=status.HTTP_400_BAD_REQUEST)
-        except jwt.exceptions.DecodeError as identifier:
+        except jwt.exceptions.DecodeError:
             return Response({'error':'Invalid Token'}, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -91,13 +89,13 @@ class ResetPassword(generics.GenericAPIView):
         user_data = serializer.data
         user = User.objects.get(email=user_data['email']) 
         current_site = get_current_site(request).domain
-        reverseLink = reverse('new-pass')
+        reverse_link = reverse('new-pass')
         payload = jwt_payload_handler(user)
         token = jwt.encode(payload, settings.SECRET_KEY).decode('UTF-8')
        
         user_data['token']=token
         shortener = pyshorteners.Shortener()
-        reset_link = shortener.tinyurl.short('http://'+current_site+reverseLink+'?token='+token)
+        reset_link = shortener.tinyurl.short('http://'+current_site+reverse_link+'?token='+token)
         email_body = "hii \n"+user.username+"Use this link to reset password: \n"+reset_link
         data={'email_body':email_body,'to_email':user.email,'email_subject':"Reset password Link"}
         Util.send_email(data)
@@ -122,9 +120,9 @@ class NewPassword(generics.GenericAPIView):
             user.set_password(user_data['password'])
             user.save()    
             return Response({'email':'New password is created'},status=status.HTTP_200_OK)
-        except jwt.ExpiredSignatureError as identifier:
+        except jwt.ExpiredSignatureError:
             return Response({'error':'Link is Expired'}, status=status.HTTP_400_BAD_REQUEST)
-        except jwt.exceptions.DecodeError as identifier:
+        except jwt.exceptions.DecodeError:
             return  
 
 

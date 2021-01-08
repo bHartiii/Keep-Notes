@@ -103,14 +103,10 @@ class AddLabelsToNote(generics.RetrieveUpdateAPIView):
     queryset = Notes.objects.all()
     lookup_field="id"
 
-    def get_serializer_context(self):
-        context = super(AddLabelsToNote, self).get_serializer_context()
-        context["user_id"] = self.request.user.id
-        return context
-
-    def perform_update(self,serializer):
+    def perform_update(self,serializer):    
         return serializer.save(owner=self.request.user)
-    
+
+
     def get_queryset(self):
         return self.queryset.filter(owner=self.request.user)
 
