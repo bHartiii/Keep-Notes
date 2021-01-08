@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from Notes.models import Notes, Labels
-
+from rest_framework.renderers import JSONRenderer
+from django.db.models import Q
 
 class NotesSerializer(serializers.ModelSerializer):
     class Meta:
@@ -25,24 +26,13 @@ class TrashSerializer(serializers.ModelSerializer):
     class Meta:
         model= Notes
         fields=['title','content','isDelete','isArchive','owner_id']
-        extra_kwargs = {'title': {'read_only': True},'content': {'read_only': True},'isArchive':{'read_only':True}, 'owner_id': {'read_only': True}} 
+        extra_kwargs = {'title': {'read_only': True},'content': {'read_only': True},'isArchive':{'read_only':True}, 'owner_id': {'read_only': True}}   
 
-class AddNotesInLabelsSerializer(serializers.PrimaryKeyRelatedField, serializers.ModelSerializer):
-    class Meta:
-        model= Labels
-        fields=['name']  
 
 class AddLabelsToNoteSerializer(serializers.ModelSerializer):
-    label =AddNotesInLabelsSerializer(many=True, queryset=Labels.objects.all())
+    
+    label =serializers.PrimaryKeyRelatedField(many=True, queryset=Labels.objects.filter(owner='14'))
     class Meta:
         model = Notes
-        fields=['title','content','label','owner_id']
+        fields=['title','content','label','owner']
         extra_kwargs = {'owner': {'read_only': True}, 'title': {'read_only': True}, 'content': {'read_only': True}}
-        def validate(self, attrs):
-            labels = attrs.get('label','')
-            owner = attrs.get('owner','')
-            title= attrs.get('title','')
-            content = attrs.get('content','')
-            return attrs
-
-

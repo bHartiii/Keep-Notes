@@ -88,7 +88,6 @@ class ResetPassword(generics.GenericAPIView):
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
         user_data = serializer.data
         user = User.objects.get(email=user_data['email']) 
         current_site = get_current_site(request).domain
@@ -120,7 +119,7 @@ class NewPassword(generics.GenericAPIView):
         try:
             payload = jwt.decode(token,settings.SECRET_KEY)
             user = User.objects.get(id=payload['user_id'])
-            user.password = user_data['password']
+            user.set_password(user_data['password'])
             user.save()    
             return Response({'email':'New password is created'},status=status.HTTP_200_OK)
         except jwt.ExpiredSignatureError as identifier:
@@ -135,8 +134,6 @@ class LogoutView(generics.GenericAPIView):
     def get(self, request):
         logout(request)
         return Response({"success": "Successfully logged out."},status=status.HTTP_200_OK)
-
-
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
     permission_classes=(permissions.IsAuthenticated,IsOwner)
