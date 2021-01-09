@@ -18,31 +18,45 @@ from authentication.permissions import IsOwner
 
 
 class RegisterView(generics.GenericAPIView):
+    """
+        API register user details, create a user profile for user and send jwt token to verify email
+    """
     permission_classes = (AllowAny,)
     serializer_class = RegisterSerializer
     def post(self, request):
+        """
+            Generate jwt token ,create verification url and send it to user email 
+        """      
         user = request.data
         serializer = self.serializer_class(data=user)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         user_data = serializer.data
         user = User.objects.get(email=user_data['email'])
-      
+
+        # generating token using user information
         payload = jwt_payload_handler(user)
         token = jwt.encode(payload,settings.SECRET_KEY).decode('UTF-8')
         user_data['token'] = token
+        
+        # creating email verification link
         current_site = get_current_site(request).domain
         relative_link = reverse('verify-email')
-        
         absurl = 'http://'+current_site+relative_link+'?token='+str(token)
+        
+        # shortening of verification link
         shortener = pyshorteners.Shortener()
         verification_link = shortener.tinyurl.short(absurl)
+        
         email_body = 'Hii \n'+user.username+' Use this below to verify your email \n'+verification_link
         data = {'email_body':email_body ,'to_email':user.email, 'email_subject':'Verify you email'}
         Util.send_email(data) 
         return Response(user_data,status=status.HTTP_201_CREATED)
 
 class VerifyEmail(generics.GenericAPIView):
+    """
+        API to decode token sent on email to match user details
+    """    
     serializer_class = EmailVerificationSerializer
     permission_classes = (AllowAny,)
 
@@ -50,6 +64,9 @@ class VerifyEmail(generics.GenericAPIView):
 
     @swagger_auto_schema(manual_parameters=[token_param_config])
     def get(self, request):
+        """
+            Get token from url and decode it to get user
+        """       
         token = request.GET.get('token')
         try:
             payload = jwt.decode(token,settings.SECRET_KEY)
@@ -66,10 +83,15 @@ class VerifyEmail(generics.GenericAPIView):
 
 
 class LoginAPIView(generics.GenericAPIView):
+    """
+        API to login with valid credentials 
+    """
     serializer_class = LoginSerializer
     permission_classes = (AllowAny,)
-    
+
     def post(self, request):
+        """ Take user credentials and authenticate it to login  """        
+        
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         user_data = serializer.data
@@ -80,10 +102,17 @@ class LoginAPIView(generics.GenericAPIView):
     
 
 class ResetPassword(generics.GenericAPIView):
+    """
+        API to sends a link to reset password for requested user
+    """
     serializer_class = ResetPasswordSerializer
     permission_classes = (AllowAny,)
 
     def post(self, request):
+        """
+            Get user email and generate jwt token and send it to the user by email
+
+        """        
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         user_data = serializer.data
@@ -103,12 +132,17 @@ class ResetPassword(generics.GenericAPIView):
 
 
 class NewPassword(generics.GenericAPIView):
+    """
+       API to deocde token and update password for user
+    """
     serializer_class = NewPasswordSerializer
     permission_classes = (AllowAny,)
     token_param_config = openapi.Parameter('token',in_=openapi.IN_QUERY,description='Description',type=openapi.TYPE_STRING)
 
     @swagger_auto_schema(manual_parameters=[token_param_config])
     def put(self, request):
+        """ Get token from url, decodes it to get user and update its password  """        
+        
         token = request.GET.get('token')
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -127,20 +161,31 @@ class NewPassword(generics.GenericAPIView):
 
 
 class LogoutView(generics.GenericAPIView):
-
+    """
+        API to log out authenticated user 
+    """
     permission_classes = (permissions.IsAuthenticated,IsOwner)
     def get(self, request):
         logout(request)
         return Response({"success": "Successfully logged out."},status=status.HTTP_200_OK)
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
+    """
+        API to update user profile details
+    """
     permission_classes=(permissions.IsAuthenticated,IsOwner)
     serializer_class = UserProfileSerializer
     queryset=UserProfile.objects.all()
 
     def get_object(self):
+        """
+            Returns current logged in user profile instance
+        """        
         return self.request.user.profile
 
     def perform_create(self):
+        """
+            Save the updated user profile instance
+        """
         return serializer.save(user=self.request.user)
     
