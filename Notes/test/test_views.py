@@ -69,7 +69,7 @@ class NotesAPITest(TestCase):
 ### List notes API test cases:
 
     def test_get_all_notes_without_login(self):
-        notes = Notes.objects.filter(owner=self.user1, isArchive=False, isDelete=False)
+        Notes.objects.filter(owner=self.user1, isArchive=False, isDelete=False)
         response = self.client.get(reverse('notes'))
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 

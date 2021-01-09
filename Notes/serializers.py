@@ -36,8 +36,3 @@ class AddLabelsToNoteSerializer(serializers.ModelSerializer):
         model = Notes
         fields=['title','content','label','owner']
         extra_kwargs = {'owner': {'read_only': True}, 'title': {'read_only': True}, 'content': {'read_only': True}}
-
-        def validate(self, data):
-            labels = data.get('label','')
-            owner = data.get('owner','')
-            return data
