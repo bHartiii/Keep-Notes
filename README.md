@@ -6,14 +6,15 @@
     * Registration using email verification.
     * Login and logout
     * Reset password
+    * UserProfile 
 - For authentication JWT token is used. 
-
+- For user profile creation signal is used.
 - **JWT Token :** JWT is an encoded JSON string that is passed in headers to authenticate requests. It is usually obtained by hashing JSON data with a secret key. This means that the server doesn't need to query the database every time to retrieve the user associated with a given token.  
 
 - **The Concept of Authentication and Authorization:**  
 Authentication is the process of identifying a logged-in user, while authorization is the process of identifying if a certain user has the right to access a web resource.
 
-
+- **Signals** : Django includes a “signal dispatcher” which helps allow decoupled applications get notified when actions occur elsewhere in the framework. In a nutshell, signals allow certain senders to notify a set of receivers that some action has taken place. They’re especially useful when many pieces of code may be interested in the same events.
 
 ### Django Project Creation :
 
@@ -28,7 +29,7 @@ Authentication is the process of identifying a logged-in user, while authorizati
 - Activate the virtual environment.
     1. keep/Script/activate
 
-- Install Requirements of this project:
+- Install **Requirements** of this project:
     1. pip install django
     2. pip install djangorestframework
     3. pip install django-rest-framework jwt
@@ -101,6 +102,9 @@ Authentication is the process of identifying a logged-in user, while authorizati
 ### Create Models For App:
 
 - In Django models are used to define the database layout or in simple terms tables in the database.
+- There are two models:
+    1. User
+    2. UserProfile
 - Create a custom user manager by extending BaseUserManager and providing two additional methods:
     * create_user() and create_superuser()
     * create_user() and create_superuser() must accept username field and other required fields as args:   
@@ -116,7 +120,10 @@ Authentication is the process of identifying a logged-in user, while authorizati
 
 - class User extends AbstractBaseUser to create a user with custom fields:
     * USERNAME_FIELD is set to email as it should be used as username while login.
-    * REQUIRED_FIELDS contain a list of fields required but in our case it’s empty. 
+    * REQUIRED_FIELDS contain a list of fields required but in our case it’s empty.
+
+- Create a image field in user profile model. 
+- There is one to one relation between user and profile.
 
 - Custom AUTH_USER_MODEL setting:
     By default, Django assumes that the user model is django.contrib.auth.models.User. We want to use our own custom User though. Since we've created the User class, the next thing we need to do is to tell Django to use our User model instead of using its own.
@@ -142,9 +149,23 @@ Authentication is the process of identifying a logged-in user, while authorizati
 - Register models in admins.py:
 
         from django.contrib import admin
-        from authentication.models import User
+        from authentication.models import User, UserProfile
         admin.site.register(User)
+        admin.site.register(UserProfile)
 
+
+### Storing uploaded pictures:
+
+- Create media folder in project root directory.
+- in image field of user rpofile specify the path of image inside media.
+- In settings:
+
+            MEDIA_URL = '/media/'
+            MEDIA_ROOT = 'media'
+
+- In project;s urls add the following to urlpatterns list so that images can be accessed by url:
+
+            +static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 
 ### Migration:
@@ -164,6 +185,22 @@ Authentication is the process of identifying a logged-in user, while authorizati
                 Applying userprofile.0001_initial... OK
 
 
+### Create user profile using signals:
+
+- Create a file signals.py in app.
+- user post_save() and create a receiver funaction : 
+
+        @receiver(post_save,sender=User)
+        def create_user_profile(sender, instance, created, **kwargs):
+            if created:
+                UserProfile.objects.create(user=instance)
+
+- Register signals by re writing ready() in apps.py
+
+        def ready(self):
+            import authentication.signals
+
+
 ### Storing and retrieving the data in JSON:
 
 - **Serializers** : Serializer storing and retrieving the data in JSON as the response we want from our API is in JSON.
@@ -175,6 +212,7 @@ Authentication is the process of identifying a logged-in user, while authorizati
     3. LoginSerilaizer
     4. ResetPasswordSerializer
     5. NewPasswordSerializer
+    6. UserProfilrSerializer
 
 - Create class that extends the serializer.
 - Every serializer contains meta class inside model is set and fields of models are also given.
@@ -229,8 +267,8 @@ Authentication is the process of identifying a logged-in user, while authorizati
 
 - Generate jwt token using user details :
 
-            payload = jwt_payload_handler(user)
-            token = jwt.encode(payload,settings.SECRET_KEY)   
+        payload = jwt_payload_handler(user)
+        token = jwt.encode(payload,settings.SECRET_KEY)   
 
 - Create email verification link :  
 
@@ -258,38 +296,38 @@ Authentication is the process of identifying a logged-in user, while authorizati
 - Get token from url and decode it to fetch user details.
 - Check token validations.If not then raise jwt errors.
 - Set the is_active and is_verified field as true :  
-
+    
         payload = jwt.decode(token,settings.SECRET_KEY)
         user = User.objects.get(id=payload['user_id'])
         if not user.is_verified:
             user.is_verified=True
             user.is_active=True
             user.save()
-    
+        
 #### 3. LoginView:
 
 - Create a post method.
 - Set serializer class and pass request data to it for validations.
 - Check if user exists or not, if not then raise error.  
-      
-            def validate(self, attrs):
-                email= attrs.get('email','')
-                password = attrs.get('password','')
-                try:
-                    user = User.objects.get(email =email, password=password)
-                    if not user:
-                        raise AuthenticationFailed("Invalid credentials given!!!")
-                    if not user.is_active:
-                        raise AuthenticationFailed("Account is deactivated!!!")
-                    if not user.is_verified:
-                        raise AuthenticationFailed("Email is not verified!!!")
-                except serializers.ValidationError as identifier:
-                    return {'error':"Please provide email and password"}
-                return {
-                    'email':user.email,
-                    'username':user.username,
-                    'password':user.password,
-                }
+
+        def validate(self, attrs):
+            email= attrs.get('email','')
+            password = attrs.get('password','')
+            try:
+                user = User.objects.get(email =email, password=password)
+                if not user:
+                    raise AuthenticationFailed("Invalid credentials given!!!")
+                if not user.is_active:
+                    raise AuthenticationFailed("Account is deactivated!!!")
+                if not user.is_verified:
+                    raise AuthenticationFailed("Email is not verified!!!")
+            except serializers.ValidationError as identifier:
+                return {'error':"Please provide email and password"}
+            return {
+                'email':user.email,
+                'username':user.username,
+                'password':user.password,
+            }
 
 - Otherwise create jwt token for it and return details in response.
 
@@ -323,17 +361,25 @@ Authentication is the process of identifying a logged-in user, while authorizati
 - Set permsission as IsAuthenticated. So only authenticated and logged in user will be able to access it.
 - Call logout() 
 
+#### 6. UserProfile view:
+
+- Use RetreiveUpdate from generics that will provide views to update user profile.
+- to get current user profiel rewrite the get_object method :
+    
+        def get_object(self):
+            return self.request.user.profile
+
 ### Create route 
 
 - For every view we have to create route in urls.py in app.
 - To access these APIs the corrosponding path has to be provided on localhost.  
-        
-            urlpatterns = [
-                path('register/',RegisterView.as_view() , name='register'),
-                path('login/',LoginAPIView.as_view() , name='login'),
-                path('logout/', LogoutView.as_view(), name='logout'),
-                path('verify-email/',VerifyEmail.as_view() , name='verify-email'),
-                path('reset-password/',ResetPassword.as_view() , name='reset-password'),
-                path('new-pass/', NewPassword.as_view(), name='new-pass'),
-                path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-            ]
+
+        urlpatterns = [
+            path('register/',RegisterView.as_view() , name='register'),
+            path('login/',LoginAPIView.as_view() , name='login'),
+            path('logout/', LogoutView.as_view(), name='logout'),
+            path('verify-email/',VerifyEmail.as_view() , name='verify-email'),
+            path('reset-password/',ResetPassword.as_view() , name='reset-password'),
+            path('new-pass/', NewPassword.as_view(), name='new-pass'),
+            path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+        ]
