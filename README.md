@@ -1,14 +1,33 @@
 # Keep-Notes
 
 **Description** : 
-- This is django Project in which rest APIs are created for authentication.  
-- It provides APIs for following features:
+- This is django Project in which rest APIs are created for authentication and notes creation.
+- There are two apps in this project : 
+    * authentication
+    * notes
+- **authentication** app provides APIs for following features:
     * Registration using email verification.
     * Login and logout
     * Reset password
     * UserProfile 
 - For authentication JWT token is used. 
 - For user profile creation signal is used.
+
+- **notes** app provides APIs for following features :
+    * Create and list notes
+    * Create and list labels
+    * Archive note
+    * Trash note
+    * Update note 
+    * Update label
+    * Delete note
+    * Delete label
+    * Retrieve Note
+    * Retrieve label
+    * List all archived notes
+    * List all trashed notes
+    * Add labels to a note
+
 - **JWT Token :** JWT is an encoded JSON string that is passed in headers to authenticate requests. It is usually obtained by hashing JSON data with a secret key. This means that the server doesn't need to query the database every time to retrieve the user associated with a given token.  
 
 - **The Concept of Authentication and Authorization:**  
@@ -80,7 +99,6 @@ Authentication is the process of identifying a logged-in user, while authorizati
                     'USER': 'postgres',
                     'PASSWORD': 'password',
                     'PORT': '5432',
-
                 }
             }
 
@@ -98,32 +116,49 @@ Authentication is the process of identifying a logged-in user, while authorizati
 
     * Inside app in the urls.py file add route for view created in app.
 
+- Repeat these steps for notes app.
 
 ### Create Models For App:
 
 - In Django models are used to define the database layout or in simple terms tables in the database.
-- There are two models:
+- There are two models in authentication app:
     1. User
     2. UserProfile
-- Create a custom user manager by extending BaseUserManager and providing two additional methods:
-    * create_user() and create_superuser()
-    * create_user() and create_superuser() must accept username field and other required fields as args:   
-        1. Inside create_user():
+- There are two models in notes app:
+    1. Notes
+    2. Labels
 
-            - self.normalize_email(email) normalizes the email address by lowercasing the domain part.
-            - set_password(password) stores the password and saves the hash in the database.
-            - user.save(using=self._db) saves the user in the current database (self._db)
-            - finally, this method returns the user if saved successfully else throws an error.
+- **User Model :** 
+    - Create a custom user manager by extending BaseUserManager and providing two additional methods:
+        * create_user() and create_superuser()
+        * create_user() and create_superuser() must accept username field and other required fields as args:   
+            1. Inside create_user():
 
+                - self.normalize_email(email) normalizes the email address by lowercasing the domain part.
+                - set_password(password) stores the password and saves the hash in the database.
+                - user.save(using=self._db) saves the user in the current database (self._db)
+                - finally, this method returns the user if saved successfully else throws an error.
 
-        2. create_superuser() saves the user with admin permissions which are achieved by enabling is_superuser = True and is_staff = True.
+            2. create_superuser() saves the user with admin permissions which are achieved by enabling is_superuser = True and is_staff = True.
 
-- class User extends AbstractBaseUser to create a user with custom fields:
-    * USERNAME_FIELD is set to email as it should be used as username while login.
-    * REQUIRED_FIELDS contain a list of fields required but in our case it’s empty.
+    - class User extends AbstractBaseUser to create a user with custom fields:
+        * USERNAME_FIELD is set to email as it should be used as username while login.
+        * REQUIRED_FIELDS contain a list of fields required but in our case it’s empty.
 
-- Create a image field in user profile model. 
-- There is one to one relation between user and profile.
+- **UserProfile :** 
+    - Create a image field in user profile model. 
+    - There is one to one relation between user and profile.
+
+- **Notes Model :**
+    * Create field notes information like name, owner, date etc.
+    * For owner there is a manyToOne relation with User model.
+    * Create manyTomany relation between notes and labels:
+
+            owner=models.ForeignKey(to=User, on_delete=models.CASCADE)
+            label = models.ManyToManyField(to=Labels)
+
+- **Labels Model:**
+    * There is owner field also like notes.
 
 - Custom AUTH_USER_MODEL setting:
     By default, Django assumes that the user model is django.contrib.auth.models.User. We want to use our own custom User though. Since we've created the User class, the next thing we need to do is to tell Django to use our User model instead of using its own.
@@ -143,16 +178,20 @@ Authentication is the process of identifying a logged-in user, while authorizati
             'django.contrib.staticfiles',
             'rest_framework',
             'authentication.apps.AuthenticationConfig',
+            'notes',
         ]
 
 
 - Register models in admins.py:
+    * authentication app:
 
-        from django.contrib import admin
-        from authentication.models import User, UserProfile
-        admin.site.register(User)
-        admin.site.register(UserProfile)
+            from django.contrib import admin
+            from authentication.models import User, UserProfile
+            admin.site.register(User)
+            admin.site.register(UserProfile)
 
+    * notes app :
+        Like authentication app for notes app also models need to be registered in admins.py
 
 ### Storing uploaded pictures:
 
@@ -177,12 +216,16 @@ Authentication is the process of identifying a logged-in user, while authorizati
             python manage.py makemigrations  KeepNotes/authentication/profile/migrations/0001_initial.py #output
             - Create model User
             - Create model UserProfile
+            - Create model Notes
+            - Create model Labels
             python manage.py migrate
             Operations to perform:   #output
-            Apply all migrations: admin, auth, contenttypes, userprofile, sessions, user
+            Apply all migrations: admin, auth, contenttypes, userprofile, sessions, user, notes, labels
             Running migrations:
                 Applying user.0001_initial... OK
                 Applying userprofile.0001_initial... OK
+                Applying notes.0001_initial... OK
+                Applying labels.0001_initial... OK
 
 
 ### Create user profile using signals:
@@ -206,15 +249,7 @@ Authentication is the process of identifying a logged-in user, while authorizati
 - **Serializers** : Serializer storing and retrieving the data in JSON as the response we want from our API is in JSON.
                 It allows complex data and model instances to be converted to native Python datatypes that can then be easily rendered into JSON, XML or other content types.
 
-- Create serializers.py file inside the app and create following serializer for every view in the views.py:
-    1. RegisterSerializer
-    2. EmailVerificationSerializer
-    3. LoginSerilaizer
-    4. ResetPasswordSerializer
-    5. NewPasswordSerializer
-    6. UserProfilrSerializer
-
-- Create class that extends the serializer.
+- To creaet serializer create a class that extends the serializers class of restframework.
 - Every serializer contains meta class inside model is set and fields of models are also given.
 - To perform validations on request data there is a validate(). It performs validations and raises exception if any occurs. 
 - Tells the fields to be used by the serializer. If we want to include all the fields of the model then we can simply use.
@@ -238,8 +273,24 @@ Authentication is the process of identifying a logged-in user, while authorizati
                 return User.objects.create_user(**validate_data)
 
 
+- Create serializers.py file inside the authentication app and create following serializer for every view in the views.py:
+    1. RegisterSerializer
+    2. EmailVerificationSerializer
+    3. LoginSerilaizer
+    4. ResetPasswordSerializer
+    5. NewPasswordSerializer
+    6. UserProfilrSerializer
 
-### Create views:
+- Create following serializer for notes app:
+    1. NotesSerializer
+    2. LabelsSerializer
+    3. ArchiveNotesSerializer
+    4. TrashSerializer
+    5. AddNotesInLabelsSerializer
+    6. AddLabelsToNoteSerializer
+
+
+### Create views for authentication:
 
 - Create the endpoint for registering the user by creating views.py file under user.
 - All views are class based and inherit generic views.
@@ -248,13 +299,13 @@ Authentication is the process of identifying a logged-in user, while authorizati
 
         REST_FRAMEWORK = {
             'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticated',),
-            'DEFAULT_AUTHENTICATION_CLASSES': (
-                'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
-                'rest_framework.authentication.SessionAuthentication',
-                'rest_framework.authentication.TokenAuthentication',
-                'rest_framework.authentication.BasicAuthentication',
-            ),
         }
+
+- Create a permissions.py file in both apps with following code that returns a boolean value for owner of th ecurrent object:
+
+        class IsOwner(permissions.BasePermission):
+            def has_object_permission(self, request, view, obj):
+                return obj.owner == request.user 
 
 
 #### 1. RegisterView:
@@ -296,14 +347,14 @@ Authentication is the process of identifying a logged-in user, while authorizati
 - Get token from url and decode it to fetch user details.
 - Check token validations.If not then raise jwt errors.
 - Set the is_active and is_verified field as true :  
-    
+        
         payload = jwt.decode(token,settings.SECRET_KEY)
         user = User.objects.get(id=payload['user_id'])
         if not user.is_verified:
             user.is_verified=True
             user.is_active=True
             user.save()
-        
+    
 #### 3. LoginView:
 
 - Create a post method.
@@ -369,11 +420,102 @@ Authentication is the process of identifying a logged-in user, while authorizati
         def get_object(self):
             return self.request.user.profile
 
+### View for notes app:
+
+- Every view is calss based and following attribues need to be set for each:
+    * serializer_class : serilaizer class
+    * queryset : Model object 
+    * permission_classes = (permissions.IsAuthenticated, IsOwner)
+
+#### 1. CraeteAndListNotes :
+
+- It will extend CreateAndListView from generics of rest frame work.
+- It provides following views :
+    * Post : To create a new note.
+    * Get : To list all created notes for a user.
+- Pass request data to NotesSerializer for validation and serialized data with current user id.
+- Re write perform_create method to save data and get_queryset() to get records from database.
+
+#### 2. NoteDetails view:
+
+- It extends RetrieveUpdateDestroyView from generics.
+- It provides look-up field to get note by its id.
+- It provides views :
+    * get :  To retrieve note .
+    * (put, patch) : To update note .
+    * delete : To delete note.
+
+#### 3. CreateAndListLabels view :
+
+- It will extend CreateAndListView from generics of rest frame work.
+- It provides following views :
+    * Post : To create a new label.
+    * Get : To list all created labels for a user.
+
+#### 4. LabelDetails view:
+
+- It extends RetrieveUpdateDestroyView from generics.
+- It provides look-up field to get note by its id.
+- It provides views :
+    * get : To retrieve label.
+    * (put, patch) : To update label.
+    * delete : To delete label.
+
+#### 5. ArchiveNote view:
+
+- It extends RetrieveUpdateDestroyView from generics.
+- It provides look-up field to get note by its id.
+- It provides views :
+    * (put, patch) : To update archive field's value of note.
+
+#### 6. NoteToTrash view : 
+
+- It extends RetrieveUpdateDestroyView from generics.
+- It provides look-up field to get note by its id.
+- It provides views :
+    * (put, patch) : To update isDelete field's value of note.
+
+#### 7. ArchiveNotesList view : 
+
+- It extends ListAPIView from generics.
+- It provides views :
+    * get : To get all notes with archive field's value as true.
+
+#### 8. TrashList view : 
+
+- It extends ListAPIView from generics.
+- It provides views :
+    * get : To get all notes with isDelete field's value as true.
+
+#### 9. AddLabelsToNote view : 
+
+- It extends RetrieveUpdateDestroyView from generics.
+- It provides look-up field to get note by its id.
+- It provides views :
+    * (put, patch) : To update add label list to note.
+- To get list of all created labels, in serializer of this class give a queryset parameter as following:
+
+        class AddNotesInLabelsSerializer(serializers.PrimaryKeyRelatedField, serializers.ModelSerializer):
+            class Meta:
+                model= Labels
+                fields=['name']
+        class AddLabelsToNoteSerializer(serializers.ModelSerializer):
+            label =AddNotesInLabelsSerializer(many=True, queryset=Labels.objects.all())
+
+#### 10. ListNotesInLabel view :
+
+- Use same serializer class as AddLabelsToNote view.
+- Rewite the get_queryset() to filter queryset according to label id given in lookup field:
+        def get_queryset(self):
+            return self.queryset.filter(owner=self.request.user,label=self.kwargs[self.lookup_field])            
+- It provides views :
+    * get : To get all notes list with smae label.
+
 ### Create route 
 
-- For every view we have to create route in urls.py in app.
+- For every view we have to create route in urls.py in its correspnding app.
 - To access these APIs the corrosponding path has to be provided on localhost.  
-
+        
         urlpatterns = [
             path('register/',RegisterView.as_view() , name='register'),
             path('login/',LoginAPIView.as_view() , name='login'),
