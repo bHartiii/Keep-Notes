@@ -255,22 +255,22 @@ Authentication is the process of identifying a logged-in user, while authorizati
 - Tells the fields to be used by the serializer. If we want to include all the fields of the model then we can simply use.
     fields = ('__all__')
 
-            class RegisterSerializer(serializers.ModelSerializer):
-            password = serializers.CharField(max_length=68,  min_length=6, write_only=True, style={'input_type': 'password'})
+        class RegisterSerializer(serializers.ModelSerializer):
+        password = serializers.CharField(max_length=68,  min_length=6, write_only=True, style={'input_type': 'password'})
 
-            class Meta:
-                model=User
-                fields = ['email', 'username', 'password']
+        class Meta:
+            model=User
+            fields = ['email', 'username', 'password']
 
-            def validate(self, attrs):
-                email = attrs.get('email','')
-                username = attrs.get('username','')
-                if not username.isalnum():
-                    raise serializers.ValidationError('Username should contain alphanumeric values only')
-                return attrs
+        def validate(self, attrs):
+            email = attrs.get('email','')
+            username = attrs.get('username','')
+            if not username.isalnum():
+                raise serializers.ValidationError('Username should contain alphanumeric values only')
+            return attrs
 
-            def create(self, validate_data):
-                return User.objects.create_user(**validate_data)
+        def create(self, validate_data):
+            return User.objects.create_user(**validate_data)
 
 
 - Create serializers.py file inside the authentication app and create following serializer for every view in the views.py:
@@ -360,7 +360,7 @@ Authentication is the process of identifying a logged-in user, while authorizati
 - Create a post method.
 - Set serializer class and pass request data to it for validations.
 - Check if user exists or not, if not then raise error.  
-
+    
         def validate(self, attrs):
             email= attrs.get('email','')
             password = attrs.get('password','')
@@ -494,7 +494,7 @@ Authentication is the process of identifying a logged-in user, while authorizati
 - It provides views :
     * (put, patch) : To update add label list to note.
 - To get list of all created labels, in serializer of this class give a queryset parameter as following:
-
+        
         class AddNotesInLabelsSerializer(serializers.PrimaryKeyRelatedField, serializers.ModelSerializer):
             class Meta:
                 model= Labels
@@ -506,8 +506,10 @@ Authentication is the process of identifying a logged-in user, while authorizati
 
 - Use same serializer class as AddLabelsToNote view.
 - Rewite the get_queryset() to filter queryset according to label id given in lookup field:
+        
         def get_queryset(self):
             return self.queryset.filter(owner=self.request.user,label=self.kwargs[self.lookup_field])            
+
 - It provides views :
     * get : To get all notes list with smae label.
 
@@ -524,4 +526,35 @@ Authentication is the process of identifying a logged-in user, while authorizati
             path('reset-password/',ResetPassword.as_view() , name='reset-password'),
             path('new-pass/', NewPassword.as_view(), name='new-pass'),
             path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-        ]
+        ]        
+
+### Write Test Cases :
+
+- Create test folder in both apps.
+- In test folder create two files : 
+    * test_models.py
+    * test_views.py
+- To create test class import extend TestCase : 
+        from django.test import TestCase
+- In test case file create a test client by craeting object of Client class : 
+        self.client = Client()
+- In setUp method create dumy records to perform test cases.
+- In every test case call API give data to be post and check the response dtaa and code.
+- Use assertEqual and assertNotEqual to match the output of test case with desired output.
+- Try to write test cases for every possible condition while calling APIs.
+- Create valid and invalid data in dictionary object to be post, so that both positive and negative outputs can also be tested.
+- Example Test case for view :
+
+        def test_get_all_notes_after_login(self):
+            self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type='application/json')
+            notes = Notes.objects.filter(owner=self.user1, isArchive=False, isDelete=False)
+            serializer = NotesSerializer(notes, many=True)
+            response = self.client.get(reverse('notes'))
+            self.assertEqual(response.data, serializer.data)
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+- Example test case for model test:
+
+        def test_create_note(self):
+            note = Notes.objects.get(title='first note')
+            self.assertEqual(note.get_content(), "this is my first note")
