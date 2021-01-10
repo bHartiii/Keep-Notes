@@ -90,8 +90,9 @@ Authentication is the process of identifying a logged-in user, while authorizati
                     'NAME': 'database_name',
                 }
             }
-    2. For Postgres :  
 
+    2. For Postgres :
+      
             DATABASES = {
                 'default': {
                     'ENGINE': 'django.db.backends.postgresql_psycopg2',
@@ -112,7 +113,7 @@ Authentication is the process of identifying a logged-in user, while authorizati
     * Create file in urls.py inside app.
     * Inside project root directory add the path of this created urls.py in app :  
 
-          path('auth/',include('authentication.urls'))
+            path('auth/',include('authentication.urls'))
 
     * Inside app in the urls.py file add route for view created in app.
 
@@ -198,7 +199,7 @@ Authentication is the process of identifying a logged-in user, while authorizati
 - Create media folder in project root directory.
 - in image field of user rpofile specify the path of image inside media.
 - In settings:
-
+        
             MEDIA_URL = '/media/'
             MEDIA_ROOT = 'media'
 
@@ -239,7 +240,7 @@ Authentication is the process of identifying a logged-in user, while authorizati
                 UserProfile.objects.create(user=instance)
 
 - Register signals by re writing ready() in apps.py
-
+            
         def ready(self):
             import authentication.signals
 
@@ -343,11 +344,10 @@ Authentication is the process of identifying a logged-in user, while authorizati
             EMAIL_HOST_PASSWORD = '***'
      
 #### 2. VerifyEmail view:
-
 - Get token from url and decode it to fetch user details.
 - Check token validations.If not then raise jwt errors.
 - Set the is_active and is_verified field as true :  
-        
+
         payload = jwt.decode(token,settings.SECRET_KEY)
         user = User.objects.get(id=payload['user_id'])
         if not user.is_verified:
@@ -356,11 +356,10 @@ Authentication is the process of identifying a logged-in user, while authorizati
             user.save()
     
 #### 3. LoginView:
-
 - Create a post method.
 - Set serializer class and pass request data to it for validations.
 - Check if user exists or not, if not then raise error.  
-    
+
         def validate(self, attrs):
             email= attrs.get('email','')
             password = attrs.get('password','')
@@ -423,12 +422,12 @@ Authentication is the process of identifying a logged-in user, while authorizati
 ### View for notes app:
 
 - Every view is calss based and following attribues need to be set for each:
+
     * serializer_class : serilaizer class
     * queryset : Model object 
     * permission_classes = (permissions.IsAuthenticated, IsOwner)
 
 #### 1. CraeteAndListNotes :
-
 - It will extend CreateAndListView from generics of rest frame work.
 - It provides following views :
     * Post : To create a new note.
@@ -494,11 +493,12 @@ Authentication is the process of identifying a logged-in user, while authorizati
 - It provides views :
     * (put, patch) : To update add label list to note.
 - To get list of all created labels, in serializer of this class give a queryset parameter as following:
-        
+
         class AddNotesInLabelsSerializer(serializers.PrimaryKeyRelatedField, serializers.ModelSerializer):
             class Meta:
                 model= Labels
                 fields=['name']
+
         class AddLabelsToNoteSerializer(serializers.ModelSerializer):
             label =AddNotesInLabelsSerializer(many=True, queryset=Labels.objects.all())
 
@@ -506,7 +506,7 @@ Authentication is the process of identifying a logged-in user, while authorizati
 
 - Use same serializer class as AddLabelsToNote view.
 - Rewite the get_queryset() to filter queryset according to label id given in lookup field:
-        
+
         def get_queryset(self):
             return self.queryset.filter(owner=self.request.user,label=self.kwargs[self.lookup_field])            
 
@@ -517,7 +517,7 @@ Authentication is the process of identifying a logged-in user, while authorizati
 
 - For every view we have to create route in urls.py in its correspnding app.
 - To access these APIs the corrosponding path has to be provided on localhost.  
-        
+
         urlpatterns = [
             path('register/',RegisterView.as_view() , name='register'),
             path('login/',LoginAPIView.as_view() , name='login'),
@@ -526,18 +526,21 @@ Authentication is the process of identifying a logged-in user, while authorizati
             path('reset-password/',ResetPassword.as_view() , name='reset-password'),
             path('new-pass/', NewPassword.as_view(), name='new-pass'),
             path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-        ]        
+        ]
 
 ### Write Test Cases :
-
 - Create test folder in both apps.
 - In test folder create two files : 
     * test_models.py
     * test_views.py
 - To create test class import extend TestCase : 
+
         from django.test import TestCase
+
 - In test case file create a test client by craeting object of Client class : 
+
         self.client = Client()
+
 - In setUp method create dumy records to perform test cases.
 - In every test case call API give data to be post and check the response dtaa and code.
 - Use assertEqual and assertNotEqual to match the output of test case with desired output.
@@ -558,3 +561,76 @@ Authentication is the process of identifying a logged-in user, while authorizati
         def test_create_note(self):
             note = Notes.objects.get(title='first note')
             self.assertEqual(note.get_content(), "this is my first note")
+
+
+### SonarQube Analysis:
+
+#### Isntall sonarQube form zipfile:
+
+* Download sonarQube community version from this link : https://www.sonarqube.org/downloads/
+* Unzip it and configure properties and config files inside conf folder:
+  - sonar.properties file :
+    1. Setting the Access to the Database:Uncomment these lines and set variables
+        Example for PostgreSQL
+		- sonar.jdbc.username=sonarqube
+		- sonar.jdbc.password=
+		- sonar.embeddedDatabase.port=9092
+		- sonar.jdbc.url=jdbc:postgresql://localhost/sonarqube?currentSchema=my_schema
+	2. Starting the Web Server
+		- sonar.web.host=127.0.0.1
+		- sonar.web.context=
+		- sonar.web.port=9000
+		
+   - wrapper.conf file:
+     1. Adjusting the Java Installation
+	 	- wrapper.java.command=/path/to/my/jdk/bin/java
+		
+* Execute the following script to start the server:
+	- On Linux: bin/linux-x86-64/sonar.sh start
+	- On macOS: bin/macosx-universal-64/sonar.sh start
+	- On Windows: bin/windows-x86-64/StartSonar.bat
+	We can now browse SonarQube at http://localhost:9000 (the default System administrator credentials are admin/admin).
+
+* After the installation:
+	- After server is up and running, we'll need to install one or more SonarScanners on the machine where analysis will be performed.
+	- Use this link to download: https://docs.sonarqube.org/latest/analysis/scan/sonarscanner/
+	
+### Running SonarScanner from the zip file
+
+To run SonarScanner from the zip file, follow these steps:
+* Expand the downloaded file into the directory of your choice. We'll refer to it as $install_directory in the next steps.
+* Update the global settings to point to your SonarQube server by editing $install_directory/conf/sonar-scanner.properties:
+	- #sonar.host.url=http://localhost:9000
+* Add the $install_directory/bin directory to your path.
+* Verify installation by opening a new shell and executing the command sonar-scanner -h (sonar-scanner.bat -h on Windows). Output soulbe be like this:    
+
+
+            usage: sonar-scanner [options]
+            Options:
+            -D,--define <arg>     Define property
+            -h,--help             Display help information
+            -v,--version          Display version information
+            -X,--debug            Produce execution debug output
+
+	
+### Configuring your project:
+
+* Create a configuration file in your project's root directory called sonar-project.properties:  
+
+            - sonar.projectKey=my:project
+            - #sonar.projectName=My project
+            - #sonar.projectVersion=1.0
+            - #sonar.sources=.
+            - #sonar.sourceEncoding=UTF-8
+
+### Launching the project:
+
+* Give a project on the server 
+* Generate a token
+* Run the following command from the project base directory to launch analysis and pass your authentication token:
+	    
+        sonar-scanner -Dsonar.login=myAuthenticationToken
+
+### Now browse SonarQube at http://localhost:9000 :
+
+![Alt text](https://github.com/bHartiii/Keep-Notes/blob/Development/media/screenshots_readme/screenshot-sonarqube.png?raw=true)
