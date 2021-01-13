@@ -53,6 +53,7 @@ Authentication is the process of identifying a logged-in user, while authorizati
     2. pip install djangorestframework
     3. pip install django-rest-framework jwt
     4. pip install pyshortners
+    5. pip install django-redis
 
 - create our project using a command-line utility provided by django.
     1. django-admin startproject KeepNotes
@@ -634,3 +635,22 @@ To run SonarScanner from the zip file, follow these steps:
 ### Now browse SonarQube at http://localhost:9000 :
 
 ![Alt text](https://github.com/bHartiii/Keep-Notes/blob/Development/media/screenshots_readme/screenshot-sonarqube.png?raw=true)
+
+
+### Redis Installation : 
+
+* **About redis** : Redis is an in-memory data structure store that can be used as a caching engine. Since it keeps data in RAM, Redis can deliver it very  quickly. Redis is not the only product that we can use for caching.
+* Use this link to download redis for windows: https://github.com/MicrosoftArchive/redis/releases
+* Download and run .msi file for installation. 
+
+![Alt text](https://github.com/bHartiii/Keep-Notes/blob/Development/media/screenshots_readme/redis-git-repo.png?raw=true)
+
+* Check the add path to enviornment while installation or add redis in enviornment variable manually:
+
+![Alt text](https://github.com/bHartiii/Keep-Notes/blob/Development/media/screenshots_readme/redis-add-path.png?raw=true)
+
+* Open command prompt and give following command to start redis server:
+    - redis-cli
+    - Type ping to check if server is started or not. it should return pong as response.
+
+    - ![Alt text](https://github.com/bHartiii/Keep-Notes/blob/Development/media/screenshots_readme/Command-Prompt-redis-cli.png?raw=true)
