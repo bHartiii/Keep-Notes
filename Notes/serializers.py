@@ -5,7 +5,7 @@ from rest_framework.renderers import JSONRenderer
 class NotesSerializer(serializers.ModelSerializer):
     class Meta:
         model= Notes
-        fields=['content','title','isArchive','isDelete','owner_id']
+        fields=['title','content','isArchive','isDelete','owner_id']
         extra_kwargs = {'isDelete': {'read_only': True},'isArchive': {'read_only': True}, 'owner_id': {'read_only': True}}  
 
 class LabelsSerializer(serializers.ModelSerializer):
@@ -26,7 +26,7 @@ class TrashSerializer(serializers.ModelSerializer):
     class Meta:
         model= Notes
         fields=['title','content','isDelete','isArchive','owner_id']
-        # extra_kwargs = {'title': {'read_only': True},'content': {'read_only': True},'isArchive':{'read_only':True}, 'owner_id': {'read_only': True}}   
+        extra_kwargs = {'title': {'read_only': True},'content': {'read_only': True},'isArchive':{'read_only':True}, 'owner_id': {'read_only': True}}   
 
 
 class AddLabelsToNoteSerializer(serializers.ModelSerializer):

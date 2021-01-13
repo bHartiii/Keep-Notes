@@ -29,8 +29,7 @@ class CreateAndListNotes(generics.ListCreateAPIView):
         """ Create new note for user """ 
         owner = self.request.user
         note = serializer.save(owner=owner)
-        notes = self.queryset.filter(owner=owner, isArchive=False, isDelete=False)
-        cache.set(str(owner)+"-notes-"+str(note.id), notes)
+        cache.set(str(owner)+"-notes-"+str(note.id), note)
         if cache.get(str(owner)+"-notes-"+str(note.id)):
             logger.info("Data is stored in cache")
         return Response({'success':'New note is created!!'}, status=status.HTTP_201_CREATED)
@@ -49,12 +48,12 @@ class NoteDetails(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (permissions.IsAuthenticated, IsOwner)
     lookup_field="id"
 
-    def perform_create(self,serializer):
+    def perform_update(self,serializer):
         """ Save notes model instance with updated values """
         owner = self.request.user
         note = serializer.save(owner=owner)
-        notes = self.queryset.filter(owner=owner, isArchive=False, isDelete=False)
-        cache.add(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]))
+        a=cache.set(str(owner)+"-notes-"+str(note.id), note)
+        logger.info(a)
         logger.info("udated note data is set")
         return note
         
@@ -68,7 +67,7 @@ class NoteDetails(generics.RetrieveUpdateDestroyAPIView):
             return queryset
 
         else:
-            queryset = self.queryset.filter(owner=owner, isDelete=False)
+            queryset = self.queryset.filter(owner=owner, isDelete=False, id=self.kwargs[self.lookup_field])
             logger.info("updated note data is coming form DB")
             cache.set(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]), queryset)
             return queryset
@@ -76,9 +75,7 @@ class NoteDetails(generics.RetrieveUpdateDestroyAPIView):
 
     def perform_destroy(self, instance):
         owner = self.request.user
-        deleted_note = cache.get(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]))
         cache.delete(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]))
-        cache.set(str(owner)+"-delete",deleted_note)
         instance.delete()
 
 
@@ -91,8 +88,7 @@ class CreateAndListLabels(generics.ListCreateAPIView):
     def perform_create(self,serializer):
         """ Create label instance with owner and validated data by serializer and """
         label = serializer.save(owner=self.request.user)
-        labels = self.queryset.filter(owner=owner)
-        cache.set(str(owner)+"-labels-"+str(label.id), labels)
+        cache.set(str(owner)+"-labels-"+str(label.id), label)
         if cache.get(str(owner)+"-labels-"+str(label.id)):
             logger.info("Label data is stored in cache")
         return Response({'success':'New label is created!!'}, status=status.HTTP_201_CREATED)
@@ -112,20 +108,24 @@ class LabelDetails(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (permissions.IsAuthenticated, IsOwner)
     lookup_field="id"
 
-    def perform_create(self,serializer):
+    def perform_update(self,serializer):
         """ Update label instance with validated data provided by serializer """
-        return serializer.save(owner=self.request.user)
+        owner = self.request.user
+        label = serializer.save(owner=owner)
+        cache.set(str(owner)+"-labels-"+str(label.id), label)
+        logger.info("udated label data is set")
+        return label
     
     def get_queryset(self):
         """ Get label details for given label id owned by user """
         owner = self.request.user
         if cache.get(str(owner)+"-labels-"+str(self.kwargs[self.lookup_field])):
             queryset = cache.get(str(owner)+"-labels-"+str(self.kwargs[self.lookup_field]))
-            logger.info("udated note data is coming from cache")
+            logger.info("udated label data is coming from cache")
             return queryset
         else:
-            queryset = self.queryset.filter(owner=owner, isDelete=False)
-            logger.info("updated note data is coming form DB")
+            queryset = self.queryset.filter(owner=owner, id=self.kwargs[self.lookup_field])
+            logger.info("updated label data is coming form DB")
             cache.set(str(owner)+"-labels-"+str(self.kwargs[self.lookup_field]), queryset)
             return queryset
 
@@ -149,21 +149,38 @@ class ArchiveNote(generics.RetrieveUpdateAPIView):
         """ Update archive field with new boolean value given"""
         return serializer.save(owner=self.request.user)
     
-class NoteToTrash(generics.RetrieveUpdateAPIView):
+class TrashUntrash(generics.RetrieveUpdateAPIView):
     """ API to update delete field value of note for given id so it can be moved to trash """
     serializer_class = TrashSerializer
     queryset = Notes.objects.all()
     permission_classes = (permissions.IsAuthenticated, IsOwner)
     lookup_field="id"
 
+    def perform_update(self,serializer):
+        """ Update delete field value of note with value given by user """
+        owner = self.request.user
+        note = serializer.save(owner=owner)
+        if note.isDelete==True:
+            cache.delete(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]))
+        else:
+            cache.set(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]), note)
+        logger.info("udated note data is set")
+        return note
+        
+
     def get_queryset(self):
         """ Get the current delete field value of a note for given id """
-        return self.queryset.filter(owner=self.request.user)
+        owner = self.request.user
+        if cache.get(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field])):
+            queryset = cache.get(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]))
+            logger.info("udated note data is coming from cache")
+            return queryset
 
- 
-    def perform_create(self,serializer):
-        """ Update delete field value of note with value given by user """
-        return serializer.save(owner=self.request.user)
+        else:
+            queryset = self.queryset.filter(owner=owner, id=self.kwargs[self.lookup_field])
+            logger.info("updated note data is coming form DB")
+            cache.set(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]), queryset)
+            return queryset
         
  
   
