@@ -100,7 +100,6 @@ class CreateAndListLabels(generics.ListCreateAPIView):
         return self.queryset.filter(owner=owner)
 
 
-
 class LabelDetails(generics.RetrieveUpdateDestroyAPIView):
     """ APIs to retrieve, update and delete labels by id for user """
     serializer_class = LabelsSerializer
@@ -134,6 +133,7 @@ class LabelDetails(generics.RetrieveUpdateDestroyAPIView):
         cache.delete(str(owner)+"-labels-"+str(self.kwargs[self.lookup_field]))
         instance.delete()
 
+
 class ArchiveNote(generics.RetrieveUpdateAPIView):
     """ API to update archive field value of a note owned by user """
     serializer_class = ArchiveNotesSerializer
@@ -143,12 +143,39 @@ class ArchiveNote(generics.RetrieveUpdateAPIView):
 
     def get_queryset(self):
         """ Get current archive field value of note """
-        return self.queryset.filter(owner=self.request.user, isDelete=False)
+        owner = self.request.user
+        if cache.get(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field])):
+            queryset = cache.get(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]))
+            logger.info("udated archive notes data is coming from cache")
+            return queryset
+        else:
+            queryset = self.queryset.filter(owner=owner,isDelete=False, id=self.kwargs[self.lookup_field])
+            logger.info("updated archive note data is coming form DB")
+            cache.set(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]), queryset)
+            return queryset
+        
  
-    def perform_create(self,serializer):
+    def perform_update(self,serializer):
         """ Update archive field with new boolean value given"""
-        return serializer.save(owner=self.request.user)
+        owner = self.request.user
+        note = serializer.save(owner=owner)
+        a=cache.set(str(owner)+"-notes-"+str(note.id), note)
+        logger.info(a)
+        logger.info("udated archive note data is set")
+        return note
     
+
+class ArchiveNotesList(generics.ListAPIView):
+    """ API to list all archived notes list for user """
+    permission_classes=(permissions.IsAuthenticated, IsOwner)
+    serializer_class = ArchiveNotesSerializer
+    queryset = Notes.objects.all()
+    
+    def get_queryset(self):
+        """ filter the queryset for isArchive field value and owner """
+        return self.queryset.filter(owner=self.request.user,isArchive=True, isDelete=False)
+
+
 class TrashUntrash(generics.RetrieveUpdateAPIView):
     """ API to update delete field value of note for given id so it can be moved to trash """
     serializer_class = TrashSerializer
@@ -164,7 +191,7 @@ class TrashUntrash(generics.RetrieveUpdateAPIView):
             cache.delete(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]))
         else:
             cache.set(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]), note)
-        logger.info("udated note data is set")
+        logger.info("udated trashed note data is set")
         return note
         
 
@@ -173,27 +200,16 @@ class TrashUntrash(generics.RetrieveUpdateAPIView):
         owner = self.request.user
         if cache.get(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field])):
             queryset = cache.get(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]))
-            logger.info("udated note data is coming from cache")
+            logger.info("udated trashed note data is coming from cache")
             return queryset
 
         else:
             queryset = self.queryset.filter(owner=owner, id=self.kwargs[self.lookup_field])
-            logger.info("updated note data is coming form DB")
+            logger.info("updated trashed note data is coming form DB")
             cache.set(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]), queryset)
             return queryset
         
- 
-  
-class ArchiveNotesList(generics.ListAPIView):
-    """ API to list all archived notes list for user """
-    permission_classes=(permissions.IsAuthenticated, IsOwner)
-    serializer_class = ArchiveNotesSerializer
-    queryset = Notes.objects.all()
-    
-    def get_queryset(self):
-        """ filter the queryset for isArchive field value and owner """
-        return self.queryset.filter(owner=self.request.user,isArchive=True, isDelete=False)
-    
+
 class TrashList(generics.ListAPIView):
     """ API to get list of all trashed notes list for user """
     permission_classes=(permissions.IsAuthenticated, IsOwner)
@@ -202,10 +218,7 @@ class TrashList(generics.ListAPIView):
     def get_queryset(self):
         """ Filetr the queryset by isDelete field and owner id """
         owner = self.request.user
-        if cache.get(str(owner)+"-delete"):
-            queryset = cache.get(str(owner)+"-delete")
-            logger.info("deleted note data is coming from cache")
-            return queryset
+        return self.queryset.filter(owner=owner, isDelete=True)
 
 
 class AddLabelsToNote(generics.RetrieveUpdateAPIView):
