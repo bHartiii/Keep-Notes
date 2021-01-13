@@ -8,6 +8,11 @@ class NotesSerializer(serializers.ModelSerializer):
         fields=['title','content','isArchive','isDelete','owner_id']
         extra_kwargs = {'isDelete': {'read_only': True},'isArchive': {'read_only': True}, 'owner_id': {'read_only': True}}  
 
+        def validate(self, data):
+            title = data.get('title','')
+            content = data.get('content','')
+            return data
+
 class LabelsSerializer(serializers.ModelSerializer):
     class Meta:
         model= Labels

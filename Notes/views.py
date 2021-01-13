@@ -200,6 +200,7 @@ class TrashUntrash(generics.RetrieveUpdateAPIView):
         owner = self.request.user
         if cache.get(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field])):
             queryset = cache.get(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]))
+            logger.info(queryset)
             logger.info("udated trashed note data is coming from cache")
             return queryset
 
@@ -247,3 +248,32 @@ class ListNotesInLabel(generics.ListAPIView):
     def get_queryset(self):
         """ Label is fetched by id """
         return self.queryset.filter(owner=self.request.user,label=self.kwargs[self.lookup_field])
+
+
+class SearchNote(generics.GenericAPIView):
+    permission_classes=(permissions.IsAuthenticated,)
+    serializer_class = NotesSerializer
+    queryset = Notes.objects.all()
+    
+    def get_queryset(self, queryset=None):
+        if queryset:
+            title_filter = Notes.objects.filter(title__contains=queryset)
+            content_filter = Notes.objects.filter(content__contains=queryset)
+            if title_filter:
+                notes = title_filter
+            elif content_filter:
+                notes = content_filter
+            else:
+                notes=None
+        else:
+            notes = self.queryset
+        return notes
+
+    def get(self, request):
+        queryset = request.GET.get('search')
+        if queryset:
+            note = self.get_queryset(queryset)
+        else:
+            note = self.get_queryset()
+        serializer = NotesSerializer(note, many=True)
+        return Response({'response_data':serializer.data}, status=status.HTTP_200_OK)

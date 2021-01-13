@@ -1,6 +1,6 @@
 from django.urls import path
 from django.conf.urls import url
-from Notes.views import CreateAndListNotes, NoteDetails, CreateAndListLabels, LabelDetails,  ArchiveNote, TrashUntrash, ArchiveNotesList, TrashList, AddLabelsToNote, ListNotesInLabel
+from Notes.views import CreateAndListNotes, NoteDetails, CreateAndListLabels, LabelDetails,  ArchiveNote, TrashUntrash, ArchiveNotesList, TrashList, AddLabelsToNote, ListNotesInLabel, SearchNote
 
 
 
@@ -15,4 +15,6 @@ urlpatterns = [
     path('trash-list/',TrashList.as_view(), name='trash-list'),
     path('add-label/<int:id>', AddLabelsToNote.as_view(), name='add-label'),
     path('list-notes-in-label/<int:id>', ListNotesInLabel.as_view(), name='list-notes-in-label'),
+    path('search/', SearchNote.as_view(), name='search'),
+
 ]
