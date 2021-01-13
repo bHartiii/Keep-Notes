@@ -92,8 +92,8 @@ class CreateAndListLabels(generics.ListCreateAPIView):
         """ Create label instance with owner and validated data by serializer and """
         label = serializer.save(owner=self.request.user)
         labels = self.queryset.filter(owner=owner)
-        cache.set(str(owner)+"-labels", labels)
-        if cache.get(str(owner)+"-labels"):
+        cache.set(str(owner)+"-labels-"+str(label.id), labels)
+        if cache.get(str(owner)+"-labels-"+str(label.id)):
             logger.info("Label data is stored in cache")
         return Response({'success':'New label is created!!'}, status=status.HTTP_201_CREATED)
     
@@ -101,15 +101,8 @@ class CreateAndListLabels(generics.ListCreateAPIView):
     def get_queryset(self):
         """ List all labels qwned by user """
         owner = self.request.user
-        if cache.get(str(owner)+"-labels"):
-            queryset = cache.get(str(owner)+"-labels")
-            logger.info("label data is coming from cache")
-            return queryset
-        else:
-            queryset = self.queryset.filter(owner=owner)
-            logger.info("label data is coming form DB")
-            cache.set(str(owner)+"-labels", queryset)
-            return queryset
+        return queryset = self.queryset.filter(owner=owner)
+
 
 
 class LabelDetails(generics.RetrieveUpdateDestroyAPIView):
@@ -126,15 +119,20 @@ class LabelDetails(generics.RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         """ Get label details for given label id owned by user """
         owner = self.request.user
-        if cache.get(str(owner)+"-labels"):
-            queryset = cache.get(str(owner)+"-labels")
+        if cache.get(str(owner)+"-labels-"+str(self.kwargs[self.lookup_field])):
+            queryset = cache.get(str(owner)+"-labels-"+str(self.kwargs[self.lookup_field]))
             logger.info("udated note data is coming from cache")
             return queryset
         else:
             queryset = self.queryset.filter(owner=owner, isDelete=False)
             logger.info("updated note data is coming form DB")
-            cache.set(str(owner)+"-labels", queryset)
+            cache.set(str(owner)+"-labels-"+str(self.kwargs[self.lookup_field]), queryset)
             return queryset
+
+    def perform_destroy(self, instance):
+        owner = self.request.user
+        cache.delete(str(owner)+"-labels-"+str(self.kwargs[self.lookup_field]))
+        instance.delete()
 
 class ArchiveNote(generics.RetrieveUpdateAPIView):
     """ API to update archive field value of a note owned by user """
