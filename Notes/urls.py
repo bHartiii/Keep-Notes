@@ -1,11 +1,11 @@
 from django.urls import path
 from django.conf.urls import url
-from Notes.views import CraeteAndListNotes, NoteDetails, CreateAndListLabels, LabelDetails,  ArchiveNote, NoteToTrash, ArchiveNotesList, TrashList, AddLabelsToNote, ListNotesInLabel
+from Notes.views import CreateAndListNotes, NoteDetails, CreateAndListLabels, LabelDetails,  ArchiveNote, NoteToTrash, ArchiveNotesList, TrashList, AddLabelsToNote, ListNotesInLabel
 
 
 
 urlpatterns = [
-    path('notes/',CraeteAndListNotes.as_view() , name='notes'),
+    path('notes/',CreateAndListNotes.as_view() , name='notes'),
     path('note/<int:id>',NoteDetails.as_view() , name='note'),
     path('labels/',CreateAndListLabels.as_view() , name='labels'),
     path('label/<int:id>',LabelDetails.as_view() , name='label'),
