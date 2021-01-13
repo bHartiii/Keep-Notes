@@ -256,15 +256,22 @@ class SearchNote(generics.GenericAPIView):
     queryset = Notes.objects.all()
     
     def get_queryset(self, queryset=None):
+        owner = self.request.user
         if queryset:
             title_filter = Notes.objects.filter(title__contains=queryset)
             content_filter = Notes.objects.filter(content__contains=queryset)
-            if title_filter:
+            filter_cache = cache.get(queryset)
+            if filter_cache:
+                notes = filter_cache
+                logger.info("data is coming from cache")
+            elif title_filter:
                 notes = title_filter
-            elif content_filter:
+                cache.set(queryset, title_filter)
+            elif content_filter :
                 notes = content_filter
+                cache.set(queryset, content_filter)
             else:
-                notes=None
+                notes = None
         else:
             notes = self.queryset
         return notes
@@ -277,3 +284,14 @@ class SearchNote(generics.GenericAPIView):
             note = self.get_queryset()
         serializer = NotesSerializer(note, many=True)
         return Response({'response_data':serializer.data}, status=status.HTTP_200_OK)
+
+
+
+
+
+
+
+
+
+
+        
