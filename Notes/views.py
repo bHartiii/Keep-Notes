@@ -101,7 +101,7 @@ class CreateAndListLabels(generics.ListCreateAPIView):
     def get_queryset(self):
         """ List all labels qwned by user """
         owner = self.request.user
-        return queryset = self.queryset.filter(owner=owner)
+        return self.queryset.filter(owner=owner)
 
 
 
