@@ -6,15 +6,13 @@ from rest_framework import generics, permissions
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from rest_framework.response import Response
 from django.conf import settings
-from django.core.cache.backends.base import DEFAULT_TIMEOUT
-from django.views.decorators.cache import cache_page
+from django.db.models import Q
 from django.core.cache import cache
 from rest_framework import status
 import logging
 import json
 import redis_cache
 
-CACHE_TTL = getattr(settings, 'CACHE_TTL', DEFAULT_TIMEOUT)
 logger = logging.getLogger('django')
 
 class CreateAndListNotes(generics.ListCreateAPIView):
@@ -254,26 +252,25 @@ class SearchNote(generics.GenericAPIView):
     permission_classes=(permissions.IsAuthenticated,)
     serializer_class = NotesSerializer
     queryset = Notes.objects.all()
+    search_fields = ['title', 'content']
     
     def get_queryset(self, queryset=None):
         owner = self.request.user
         if queryset:
-            title_filter = Notes.objects.filter(title__contains=queryset)
-            content_filter = Notes.objects.filter(content__contains=queryset)
+            query_filter = Notes.objects.filter(Q(title__icontains=queryset)|Q(content__icontains=queryset))
             filter_cache = cache.get(queryset)
+            
             if filter_cache:
                 notes = filter_cache
                 logger.info("data is coming from cache")
-            elif title_filter:
-                notes = title_filter
-                cache.set(queryset, title_filter)
-            elif content_filter :
-                notes = content_filter
-                cache.set(queryset, content_filter)
+            elif query_filter:
+                notes = query_filter
+                cache.set(queryset, query_filter)
             else:
                 notes = None
+                
         else:
-            notes = self.queryset
+            notes = self.queryset.all()
         return notes
 
     def get(self, request):
