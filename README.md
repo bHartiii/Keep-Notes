@@ -54,6 +54,7 @@ Authentication is the process of identifying a logged-in user, while authorizati
     3. pip install django-rest-framework jwt
     4. pip install pyshortners
     5. pip install django-redis
+    6. pip imstall celery
 
 - create our project using a command-line utility provided by django.
     1. django-admin startproject KeepNotes
@@ -514,6 +515,17 @@ Authentication is the process of identifying a logged-in user, while authorizati
 - It provides views :
     * get : To get all notes list with smae label.
 
+#### 11. SearchNote view : 
+- Get the search parameter and pass it to the get_queryset() :  
+        
+            Request.GET.get('search')
+
+- Override the get_queryset() to match the search parameter with records data.
+- To match the search query parameter with model field data, use icontains lookup. It matches the data case insensetive :  
+
+            fieldname__icontains
+
+
 ### Create route 
 
 - For every view we have to create route in urls.py in its correspnding app.
@@ -654,3 +666,88 @@ To run SonarScanner from the zip file, follow these steps:
     - Type ping to check if server is started or not. it should return pong as response.
 
     - ![Alt text](https://github.com/bHartiii/Keep-Notes/blob/Development/media/screenshots_readme/Command-Prompt-redis-cli.png?raw=true)
+
+
+### Redis cache implementation :
+
+- Set custom cache backend in settings :  
+
+        CACHES = {
+            "default": {
+                "BACKEND": "django_redis.cache.RedisCache", 
+                "LOCATION": "redis://127.0.0.1:6379/1",
+                "OPTIONS": {
+                    "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                    "TIMEOUT": 3600
+                },
+                "KEY_PREFIX": "keep"
+            }
+        }
+
+- **Accessing the cache**:
+    - import : from django.core.cache import cache
+    - cache.set(key, value, timeout=DEFAULT_TIMEOUT, version=None)
+    - cache.get(key, default=None, version=None)
+    
+- For each API call check if data is present in cache or not by using cache.get(key).
+- If it is there then retrieve data from to cache only otherwise perform query on database and set that data to cache by using cache.set(key, data).
+So that next time that data can be retrieved from cache.
+
+
+### RabbitMQ Installation:
+- First we need to download and install erlang from the given link for windows: https://erlang.org/download/otp_versions_tree.html
+
+ - ![Alt text](https://github.com/bHartiii/Keep-Notes/blob/Development/media/screenshots_readme/install-erlang.png?raw=true)
+
+- Then we need to download and install rabbitMQ server for windows : https://www.rabbitmq.com/install-windows.html
+
+ - ![Alt text](https://github.com/bHartiii/Keep-Notes/blob/Development/media/screenshots_readme/rabbitMQ-server-install.png?raw=true)
+
+- then go to start menu and search for rabbitmq command prompt
+- type command "rabbitmq-plugins enable rabbitmq_management"
+- All set to go now go to http://localhost:15672
+- Use following credentials for authentication:
+    - username: guest
+    - passowrd: guest 
+
+### Celery Basic Setup:
+
+- Add the CELERY_BROKER_URL configuration to the settings.py file :  
+            
+            CELERY_BROKER_URL = 'amqp://localhost'
+
+- In project root folder create a new file named celery.py and add the following code in that :
+
+            import os
+            from celery import Celery
+
+            os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project_name.settings')
+
+            app = Celery('project_name')
+            app.config_from_object('django.conf:settings', namespace='CELERY')
+            app.autodiscover_tasks()
+
+- Now edit the __init__.py file in the project root:
+
+            from .celery import app as celery_app
+            __all__ = ['celery_app']
+
+- Create a file named tasks.py inside a Django app and put all our Celery tasks into this file. Basic structure is here :  
+
+            from celery import shared_task
+
+            @shared_task
+            def name_of_your_function(optional_param):
+                pass  # do something heavy
+
+- **Starting The Worker Process :**
+    Open a new terminal tab, and run the following command:
+
+            celery -A mysite worker -l info
+
+### References :
+- For redis cache implementation : https://docs.djangoproject.com/en/3.1/topics/cache/
+- For rabbitMQ installation :
+    - ubuntu : https://simpleisbetterthancomplex.com/tutorial/2017/08/20/how-to-use-celery-with-django.html
+    - windows : https://www.youtube.com/watch?v=V9DWKbalbWQ
+- For celery : https://simpleisbetterthancomplex.com/tutorial/2017/08/20/how-to-use-celery-with-django.html

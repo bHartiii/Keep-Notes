@@ -194,5 +194,4 @@ CACHES = {
         "KEY_PREFIX": "keep"
     }
 }
-# REDIS_HOST = 'localhost'
-# REDIS_PORT = 6379
+CELERY_BROKER_URL = 'amqp://localhost'
