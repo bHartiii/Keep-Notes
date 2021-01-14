@@ -10,6 +10,9 @@ class Labels(models.Model):
     def get_name(self):
         return self.name
 
+    def __str__(self):
+        return self.name
+
 class Notes(models.Model):
     title=models.TextField()
     content=models.TextField(db_index=True)
@@ -18,6 +21,7 @@ class Notes(models.Model):
     isArchive = models.BooleanField(default=False)
     isDelete = models.BooleanField(default=False)
     date = models.DateTimeField(auto_now_add=True, null=False, blank=False)
+    collaborator = models.ForeignKey(to=User, related_name='user', on_delete=models.CASCADE, blank=True, null=True)
 
     def get_content(self):
         return self.content

@@ -525,6 +525,11 @@ Authentication is the process of identifying a logged-in user, while authorizati
 
             fieldname__icontains
 
+#### 12. AddCollaborator view :
+- Create a field in notes model to add collaborator. 
+- Give pemission to added user in colloborator field to access note .
+- To give permissions overrid the permission methods.
+
 
 ### Create route 
 

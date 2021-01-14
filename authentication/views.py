@@ -164,7 +164,7 @@ class LogoutView(generics.GenericAPIView):
     """
         API to log out authenticated user 
     """
-    permission_classes = (permissions.IsAuthenticated,IsOwner)
+    permission_classes = (permissions.IsAuthenticated,)
     def get(self, request):
         logout(request)
         return Response({"success": "Successfully logged out."},status=status.HTTP_200_OK)

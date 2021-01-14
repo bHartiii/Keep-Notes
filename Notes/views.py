@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from Notes.serializers import NotesSerializer, LabelsSerializer, ArchiveNotesSerializer, TrashSerializer, AddLabelsToNoteSerializer
+from Notes.serializers import NotesSerializer, LabelsSerializer, ArchiveNotesSerializer, TrashSerializer, AddLabelsToNoteSerializer, AddCollaboratorSerializer
 from Notes.permissions import IsOwner
 from Notes.models import Notes, Labels
 from rest_framework import generics, permissions
@@ -21,7 +21,7 @@ class CreateAndListNotes(generics.ListCreateAPIView):
     """
     serializer_class = NotesSerializer
     queryset = Notes.objects.all()
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated,IsOwner)
 
     def perform_create(self,serializer):
         """ Create new note for user """ 
@@ -36,22 +36,21 @@ class CreateAndListNotes(generics.ListCreateAPIView):
     def get_queryset(self): 
         """ Get notes list owned by current logged in user """
         owner = self.request.user
-        return self.queryset.filter(owner=owner, isArchive=False, isDelete=False)   
+        return self.queryset.filter(Q(owner=owner)|Q(collaborator=owner), Q(isArchive=False,isDelete=False))   
          
 
 class NoteDetails(generics.RetrieveUpdateDestroyAPIView):
     """ API views to retrieve, update, and delete note by id for requested user """
     serializer_class = NotesSerializer
     queryset = Notes.objects.all()
-    permission_classes = (permissions.IsAuthenticated, IsOwner)
+    permission_classes = (permissions.IsAuthenticated,IsOwner)
     lookup_field="id"
 
     def perform_update(self,serializer):
         """ Save notes model instance with updated values """
         owner = self.request.user
         note = serializer.save(owner=owner)
-        a=cache.set(str(owner)+"-notes-"+str(note.id), note)
-        logger.info(a)
+        cache.set(str(owner)+"-notes-"+str(note.id), note)
         logger.info("udated note data is set")
         return note
         
@@ -65,7 +64,7 @@ class NoteDetails(generics.RetrieveUpdateDestroyAPIView):
             return queryset
 
         else:
-            queryset = self.queryset.filter(owner=owner, isDelete=False, id=self.kwargs[self.lookup_field])
+            queryset = self.queryset.filter(isDelete=False, id=self.kwargs[self.lookup_field])
             logger.info("updated note data is coming form DB")
             cache.set(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]), queryset)
             return queryset
@@ -255,7 +254,7 @@ class SearchNote(generics.GenericAPIView):
     def get_queryset(self, queryset=None):
         notes = None
         owner = self.request.user
-        if queryset:             
+        if queryset:                
             if cache.get(queryset):
                 notes = cache.get(queryset)
                 logger.info("data is coming from cache")
@@ -276,8 +275,20 @@ class SearchNote(generics.GenericAPIView):
         return Response({'response_data':serializer.data}, status=status.HTTP_200_OK)
 
 
+class AddCollaborator(generics.RetrieveUpdateAPIView):
+    permission_classes = (permissions.IsAuthenticated, IsOwner)
+    serializer_class = AddCollaboratorSerializer
+    queryset = Notes.objects.all()
+    lookup_field = "id"
+
+    def perform_perform(self, serializer):
+        serializer.save(owner=self.request.user)
+        return Response({'response_data':'Collaborator is added sucessfully!'})
 
 
+    def get_queryset(self):
+        """ Get current details of note fetched by id """
+        return self.queryset.filter(owner=self.request.user)
 
 
 
