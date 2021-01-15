@@ -248,19 +248,22 @@ class ListNotesInLabel(generics.ListAPIView):
 
 
 class SearchNote(generics.GenericAPIView):
-    permission_classes=(permissions.IsAuthenticated,)
+    permission_classes=(permissions.IsAuthenticated,IsOwner)
     serializer_class = NotesSerializer    
     
     def get_queryset(self, queryset=None):
-        notes = None
+        notes = []
         owner = self.request.user
         if queryset:                
+            searchlist = queryset.split(' ')
             if cache.get(queryset):
                 notes = cache.get(queryset)
                 logger.info("data is coming from cache")
             else:
-                notes = Notes.objects.filter(Q(title__icontains=queryset)|Q(content__icontains=queryset))
-                cache.set(queryset, notes)      
+                for query in searchlist:
+                    notes = Notes.objects.filter(Q(title__icontains=query)|Q(content__icontains=query))
+                    if notes:
+                        cache.set(queryset, notes)      
         else:
             notes = Notes.objects.all()
         return notes
