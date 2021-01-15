@@ -4,6 +4,7 @@ from authentication.models import User
 from rest_framework.renderers import JSONRenderer
 
 class NotesSerializer(serializers.ModelSerializer):
+    collaborator = serializers.StringRelatedField()
     class Meta:
         model= Notes
         fields=['title','content','isArchive','isDelete','owner_id','collaborator']
@@ -36,7 +37,6 @@ class TrashSerializer(serializers.ModelSerializer):
 
 
 class AddLabelsToNoteSerializer(serializers.ModelSerializer):
-    
     label =serializers.PrimaryKeyRelatedField(many=True, queryset=Labels.objects.all())
     class Meta:
         model = Notes
