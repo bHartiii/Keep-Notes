@@ -45,8 +45,12 @@ class AddLabelsToNoteSerializer(serializers.ModelSerializer):
 
 
 class AddCollaboratorSerializer(serializers.ModelSerializer):
-    collaborator = serializers.PrimaryKeyRelatedField( queryset=User.objects.all())
+    collaborator = serializers.EmailField()
     class Meta:
         model = Notes
         fields = ['title','content','label','owner','collaborator'] 
         extra_kwargs = {'owner': {'read_only': True}, 'title': {'read_only': True}, 'content': {'read_only': True},'label': {'read_only': True}}
+
+        def validate(self, attr):
+            collaborator = attr.get('collaborator','')
+            return attr

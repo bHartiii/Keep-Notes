@@ -2,6 +2,7 @@ from django.shortcuts import render
 from Notes.serializers import NotesSerializer, LabelsSerializer, ArchiveNotesSerializer, TrashSerializer, AddLabelsToNoteSerializer, AddCollaboratorSerializer
 from Notes.permissions import IsOwner
 from Notes.models import Notes, Labels
+from authentication.models import User
 from rest_framework import generics, permissions
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from rest_framework.response import Response
@@ -278,20 +279,24 @@ class SearchNote(generics.GenericAPIView):
         return Response({'response_data':serializer.data}, status=status.HTTP_200_OK)
 
 
-class AddCollaborator(generics.RetrieveUpdateAPIView):
+class AddCollaborator(generics.GenericAPIView):
     permission_classes = (permissions.IsAuthenticated, IsOwner)
     serializer_class = AddCollaboratorSerializer
-    queryset = Notes.objects.all()
-    lookup_field = "id"
+    
 
-    def perform_perform(self, serializer):
-        serializer.save(owner=self.request.user)
+    def put(self, request ,note_id):
+        note = Notes.objects.get(id=note_id)
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        collaborator_email = serializer.validated_data['collaborator']
+        try:
+            collaborator = User.objects.get(email=collaborator_email)
+        except:
+            return Response({'This user email does not exist.'})
+        note.collaborator = collaborator
+        note.save()
         return Response({'response_data':'Collaborator is added sucessfully!'})
-
-
-    def get_queryset(self):
-        """ Get current details of note fetched by id """
-        return self.queryset.filter(owner=self.request.user)
+        
 
 
 

@@ -16,5 +16,5 @@ urlpatterns = [
     path('add-label/<int:id>', AddLabelsToNote.as_view(), name='add-label'),
     path('list-notes-in-label/<int:id>', ListNotesInLabel.as_view(), name='list-notes-in-label'),
     path('search/', SearchNote.as_view(), name='search'),
-    path('add-collaborator/<int:id>', AddCollaborator.as_view(), name='add-collaborator'),
+    path('add-collaborator/<int:note_id>', AddCollaborator.as_view(), name='add-collaborator'),
 ]
