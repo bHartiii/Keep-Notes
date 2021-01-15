@@ -49,7 +49,7 @@ class NoteDetails(generics.RetrieveUpdateDestroyAPIView):
     def perform_update(self,serializer):
         """ Save notes model instance with updated values """
         owner = self.request.user
-        note = serializer.save(owner=owner)
+        note = serializer.save()
         cache.set(str(owner)+"-notes-"+str(note.id), note)
         logger.info("udated note data is set")
         return note
