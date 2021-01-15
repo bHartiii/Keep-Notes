@@ -256,14 +256,14 @@ class SearchNote(generics.GenericAPIView):
         owner = self.request.user
         if queryset:                
             searchlist = queryset.split(' ')
-            if cache.get(queryset):
-                notes = cache.get(queryset)
-                logger.info("data is coming from cache")
-            else:
-                for query in searchlist:
+            for query in searchlist:
+                if cache.get(query):
+                    notes = cache.get(query)
+                    logger.info("data is coming from cache")
+                else:
                     notes = Notes.objects.filter(Q(title__icontains=query)|Q(content__icontains=query))
                     if notes:
-                        cache.set(queryset, notes)      
+                        cache.set(query, notes)      
         else:
             notes = Notes.objects.all()
         return notes
