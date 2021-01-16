@@ -35,6 +35,14 @@ Authentication is the process of identifying a logged-in user, while authorizati
 
 - **Signals** : Django includes a “signal dispatcher” which helps allow decoupled applications get notified when actions occur elsewhere in the framework. In a nutshell, signals allow certain senders to notify a set of receivers that some action has taken place. They’re especially useful when many pieces of code may be interested in the same events.
 
+- **Celery:** We can call a celery task by two ways:
+    - Synchronous : The method is exceuted in same thrad.
+    - Asynchronous : The message is sent to celery worker by using rabbitMQ server.
+    Ex : method_name.delay() : It create json message and paass it to celery worker.
+    - Celery uses rabbitMQ serve as message broker that passes the message from django to celery worker.
+    - By using status property we can check status of asychronous tasks.
+
+
 ### Django Project Creation :
 
 #### Project setup and database structure:
@@ -55,6 +63,8 @@ Authentication is the process of identifying a logged-in user, while authorizati
     4. pip install pyshortners
     5. pip install django-redis
     6. pip imstall celery
+    7. pip install django-celery-results
+    8. pip install django-celery-beat
 
 - create our project using a command-line utility provided by django.
     1. django-admin startproject KeepNotes
@@ -750,9 +760,54 @@ So that next time that data can be retrieved from cache.
 
             celery -A mysite worker -l info
 
+### Asychronous tasks in celery:
+
+- To check the task status install django_celery_results package. It store the status of tasks in databse table.
+- We have to add this in installed apps settings and then migrate.
+- Add Celery backend as django database in settings :
+
+            CELERY_RESULT_BACKEND = 'django-db'
+
+- Add celery cache as django cache also in settings:
+
+            CELERY_CACHE_BACKEND = 'django-cache'
+
+### Setting periodic tasks in celery:
+- Install celery_beat extension for this and add it to installed apps in settings.
+- After this migrate all migrations.
+- Then celery.py file add the configuration for schedule beat like tasks name, scheduling time, and arguments for the method:
+           
+            app.conf.beat_schedule = {
+                'triggering' : {
+                    'task': 'Notes.tasks.send_email',
+                    'schedule': 15,
+                    'args': ('malibharti5@gmail.com',)
+                }
+            }
+
+- To set schedule time we can use contrab and sonar schedulers also like this:
+
+            contrab(minutes='*/15')
+
+### Executing celery task:
+- Run command : 
+
+            celery -A KeepNotes beat -l info
+
+### Monitoring Celery tasks:
+- **celery -A KeepNotes status** : To check the status of every runnning worker.
+- **celery -A KeepNotes inspect** : It take an agrguments like the following -
+    1. active : Shows all running tasks in worker.
+    2. reserved : Displays reserved tasks means those tasks that are not started and scheduled over max limit of worker. So these tasks will be executed whenever the worker will be free.
+    3. schedule : Shows the periodic tasks.To set periodic tasks we have to set ETA or countdown parameters whilw calling asynchronous tasks.
+
+
+
 ### References :
 - For redis cache implementation : https://docs.djangoproject.com/en/3.1/topics/cache/
 - For rabbitMQ installation :
     - ubuntu : https://simpleisbetterthancomplex.com/tutorial/2017/08/20/how-to-use-celery-with-django.html
     - windows : https://www.youtube.com/watch?v=V9DWKbalbWQ
-- For celery : https://simpleisbetterthancomplex.com/tutorial/2017/08/20/how-to-use-celery-with-django.html
+- For celery : 
+    1. https://simpleisbetterthancomplex.com/tutorial/2017/08/20/how-to-use-celery-with-django.html
+    2. https://www.youtube.com/watch?v=A89mCa1ytow

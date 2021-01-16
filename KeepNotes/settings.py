@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework_swagger',
     'drf_yasg',
+    'django_celery_results',
+    'django_celery_beat',
   
 ]
 
@@ -195,3 +197,5 @@ CACHES = {
     }
 }
 CELERY_BROKER_URL = 'amqp://localhost'
+CELERY_RESULT_BACKEND = 'django-db'
+CELERY_CACHE_BACKEND = 'django-cache'
