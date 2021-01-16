@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from Notes.serializers import NotesSerializer, LabelsSerializer, ArchiveNotesSerializer, TrashSerializer, AddLabelsToNoteSerializer, AddCollaboratorSerializer
-from Notes.permissions import IsOwner
+from Notes.permissions import IsOwner, IsCollaborator
 from Notes.models import Notes, Labels
 from authentication.models import User
 from rest_framework import generics, permissions
@@ -22,7 +22,7 @@ class CreateAndListNotes(generics.ListCreateAPIView):
     """
     serializer_class = NotesSerializer
     queryset = Notes.objects.all()
-    permission_classes = (permissions.IsAuthenticated,IsOwner)
+    permission_classes = (permissions.IsAuthenticated,IsCollaborator)
 
     def perform_create(self,serializer):
         """ Create new note for user """ 
@@ -40,11 +40,11 @@ class CreateAndListNotes(generics.ListCreateAPIView):
         return self.queryset.filter(Q(owner=owner)|Q(collaborator=owner), Q(isArchive=False,isDelete=False))   
          
 
-class NoteDetails(generics.RetrieveUpdateDestroyAPIView):
+class NoteDetails(generics.RetrieveUpdateAPIView):
     """ API views to retrieve, update, and delete note by id for requested user """
     serializer_class = NotesSerializer
     queryset = Notes.objects.all()
-    permission_classes = (permissions.IsAuthenticated,IsOwner)
+    permission_classes = (permissions.IsAuthenticated,IsCollaborator)
     lookup_field="id"
 
     def perform_update(self,serializer):
@@ -70,6 +70,12 @@ class NoteDetails(generics.RetrieveUpdateDestroyAPIView):
             cache.set(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]), queryset)
             return queryset
             
+
+class DeleteNote(generics.DestroyAPIView):
+    serializer_class = NotesSerializer
+    queryset = Notes.objects.all()
+    permission_classes = (permissions.IsAuthenticated,IsOwner)
+    lookup_field="id"
 
     def perform_destroy(self, instance):
         owner = self.request.user
@@ -266,7 +272,7 @@ class SearchNote(generics.GenericAPIView):
                     if notes:
                         cache.set(query, notes)      
         else:
-            notes = Notes.objects.all()
+            notes = Notes.objects.all(owner=owner, isArchive=False, isDelete=False)
         return notes
 
     def get(self, request):
@@ -284,7 +290,7 @@ class AddCollaborator(generics.GenericAPIView):
     serializer_class = AddCollaboratorSerializer
     
 
-    def put(self, request ,note_id):
+    def post(self, request ,note_id):
         note = Notes.objects.get(id=note_id)
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -293,9 +299,14 @@ class AddCollaborator(generics.GenericAPIView):
             collaborator = User.objects.get(email=collaborator_email)
         except:
             return Response({'This user email does not exist.'})
-        note.collaborator = collaborator
-        note.save()
-        return Response({'response_data':'Collaborator is added sucessfully!'})
+        if collaborator==request.user:
+            return Response({'Detail': 'This email already exists!!!'})
+        else:
+            note.collaborator = collaborator
+            note.save()
+            return Response({'collaborator':collaborator_email})
+
+    
         
 
 

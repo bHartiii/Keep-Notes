@@ -51,6 +51,3 @@ class AddCollaboratorSerializer(serializers.ModelSerializer):
         fields = ['title','content','label','owner','collaborator'] 
         extra_kwargs = {'owner': {'read_only': True}, 'title': {'read_only': True}, 'content': {'read_only': True},'label': {'read_only': True}}
 
-        def validate(self, attr):
-            collaborator = attr.get('collaborator','')
-            return attr

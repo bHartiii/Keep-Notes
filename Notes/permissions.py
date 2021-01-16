@@ -1,6 +1,6 @@
 from rest_framework import permissions
 
-class IsOwner(permissions.BasePermission):
+class IsCollaborator(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if obj.owner == request.user:
             return True
@@ -9,4 +9,10 @@ class IsOwner(permissions.BasePermission):
         else:
             return False
 
+class IsOwner(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        if obj.owner == request.user:
+            return True
+        else:
+            return False
  
