@@ -1,5 +1,6 @@
 from django.db import models
 from authentication.models import User
+from django.contrib.postgres.fields import JSONField
 
 # Create your models here.
 class Labels(models.Model):
@@ -22,6 +23,7 @@ class Notes(models.Model):
     isDelete = models.BooleanField(default=False)
     date = models.DateTimeField(auto_now_add=True, null=False, blank=False)
     collaborator = models.ForeignKey(to=User, related_name='user', on_delete=models.CASCADE, blank=True, null=True)
+    # collaborator = JSONField(null=True, blank=True)
 
     def get_content(self):
         return self.content
