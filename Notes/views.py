@@ -235,12 +235,15 @@ class AddLabelsToNote(generics.GenericAPIView):
     serializer_class = AddLabelsToNoteSerializer
 
     def put(self, request, note_id):
-        note = Notes.objects.get(id=note_id)
+        try:
+            note = Notes.objects.get(id=note_id, owner=request.user)
+        except Notes.DoesNotExist:
+            return Response({'response':'Note does not exist'}, status=status.HTTP_404_NOT_FOUND)
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         label_name = serializer.data['label']
         try:
-            label = Labels.objects.get(name=label_name)
+            label = Labels.objects.get(name=label_name, owner=self.request.user)
         except Labels.DoesNotExist:
             label = Labels.objects.create(name=label_name, owner=self.request.user)
         note.label.add(label.id)

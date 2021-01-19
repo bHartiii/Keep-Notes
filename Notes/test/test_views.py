@@ -59,10 +59,10 @@ class NotesAPITest(TestCase):
             'isDelete' : None
         }
         self.valid_add_label_payload = {
-           'label': [self.label_for_user1.id]
+           'label': 'label1'
         }
         self.invalid_add_label_payload = {
-            'label' : self.label_for_user2.id
+            'label' : None
         }
         self.user1_credentials = {
             'email':'malibharti5@gmail.com',
@@ -540,27 +540,27 @@ class NotesAPITest(TestCase):
 ### Test cases for add-label-to-note API 
 
     def test_add_label_to_note_without_login(self):
-        response = self.client.post(reverse('add-label', kwargs={'id': self.note_for_user1.id}),data=json.dumps(self.valid_add_label_payload), content_type=CONTENT_TYPE)
+        response = self.client.post(reverse('add-label', kwargs={'note_id': self.note_for_user1.id}),data=json.dumps(self.valid_add_label_payload), content_type=CONTENT_TYPE)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_add_label_to_note_after_login_with_invalid_credentials(self):
         self.client.post(reverse('login'),data=json.dumps(self.invalid_credentials), content_type=CONTENT_TYPE)
-        response = self.client.put(reverse('add-label', kwargs={'id': self.note_for_user1.id}), data=json.dumps(self.valid_add_label_payload),content_type=CONTENT_TYPE)
+        response = self.client.put(reverse('add-label', kwargs={'note_id': self.note_for_user1.id}), data=json.dumps(self.valid_add_label_payload),content_type=CONTENT_TYPE)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_add_label_to_note_with_valid_payload_after_login(self):
         self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type=CONTENT_TYPE)
-        response = self.client.put(reverse('add-label', kwargs={'id': self.note_for_user1.id}), data=json.dumps(self.valid_add_label_payload),content_type=CONTENT_TYPE)
+        response = self.client.put(reverse('add-label', kwargs={'note_id': self.note_for_user1.id}), data=json.dumps(self.valid_add_label_payload),content_type=CONTENT_TYPE)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_add_label_to_note_with_invalid_payload_after_login(self):
         self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type=CONTENT_TYPE)
-        response = self.client.put(reverse('add-label', kwargs={'id': self.note_for_user1.id}), data=json.dumps(self.invalid_add_label_payload),content_type=CONTENT_TYPE)
+        response = self.client.put(reverse('add-label', kwargs={'note_id': self.note_for_user1.id}), data=json.dumps(self.invalid_add_label_payload),content_type=CONTENT_TYPE)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_add_label_to_other_user_note_after_login(self):
         self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type=CONTENT_TYPE)
-        response = self.client.put(reverse('add-label', kwargs={'id': self.note_for_user2.id}), data=json.dumps(self.valid_add_label_payload), content_type=CONTENT_TYPE)
+        response = self.client.put(reverse('add-label', kwargs={'note_id': self.note_for_user2.id}), data=json.dumps(self.valid_add_label_payload), content_type=CONTENT_TYPE)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
 ### Test cases for list-notes-in-label
