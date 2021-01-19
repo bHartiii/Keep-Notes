@@ -11,10 +11,9 @@ app = Celery('KeepNotes')
 app.config_from_object('django.conf:settings', namespace='CELERY')
 
 app.conf.beat_schedule = {
-    'triggering' : {
-        'task': 'Notes.tasks.send_email',
-        'schedule': 15,
-        'args': ('malibharti5@gmail.com',)
+    'trash':{
+        'task':'Notes.tasks.delete_trashed_note',
+        'schedule':24*60*60,
     }
 }
 
