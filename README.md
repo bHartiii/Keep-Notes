@@ -65,6 +65,7 @@ Authentication is the process of identifying a logged-in user, while authorizati
     6. pip imstall celery
     7. pip install django-celery-results
     8. pip install django-celery-beat
+    9. pip install psycopg2
 
 - create our project using a command-line utility provided by django.
     1. django-admin startproject KeepNotes
