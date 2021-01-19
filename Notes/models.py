@@ -21,6 +21,7 @@ class Notes(models.Model):
     label = models.ManyToManyField(to=Labels)
     isArchive = models.BooleanField(default=False)
     isDelete = models.BooleanField(default=False)
+    trashedAt = models.DateTimeField(default=None, null=True, blank=True)
     date = models.DateTimeField(auto_now_add=True, null=False, blank=False)
     collaborator = models.ForeignKey(to=User, related_name='user', on_delete=models.CASCADE, blank=True, null=True)
     # collaborator = JSONField(null=True, blank=True)
