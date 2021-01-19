@@ -37,11 +37,15 @@ class TrashSerializer(serializers.ModelSerializer):
 
 
 class AddLabelsToNoteSerializer(serializers.ModelSerializer):
-    label =serializers.PrimaryKeyRelatedField(many=True, queryset=Labels.objects.all())
+    label =serializers.CharField()
     class Meta:
         model = Notes
         fields=['title','content','label','owner']
         extra_kwargs = {'owner': {'read_only': True}, 'title': {'read_only': True}, 'content': {'read_only': True}}
+
+        def validate(self, attrs):
+            label = attrs.get('label','')
+            return attrs
 
 
 class AddCollaboratorSerializer(serializers.ModelSerializer):

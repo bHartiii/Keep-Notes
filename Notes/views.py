@@ -229,21 +229,24 @@ class TrashList(generics.ListAPIView):
         return self.queryset.filter(owner=owner, isDelete=True)
 
 
-class AddLabelsToNote(generics.RetrieveUpdateAPIView):
+class AddLabelsToNote(generics.GenericAPIView):
     """ API to add available labels to notes of requested user """
     permission_classes = (permissions.IsAuthenticated,IsOwner)
     serializer_class = AddLabelsToNoteSerializer
-    queryset = Notes.objects.all()
-    lookup_field="id"
 
-    def perform_update(self,serializer): 
-        """ Update label field of notes model """   
-        return serializer.save(owner=self.request.user)
+    def put(self, request, note_id):
+        note = Notes.objects.get(id=note_id)
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        label_name = serializer.data['label']
+        try:
+            label = Labels.objects.get(name=label_name)
+        except Labels.DoesNotExist:
+            label = Labels.objects.create(name=label_name, owner=self.request.user)
+        note.label.add(label.id)
+        note.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-
-    def get_queryset(self):
-        """ Get current details of note fetched by id """
-        return self.queryset.filter(owner=self.request.user)
 
 class ListNotesInLabel(generics.ListAPIView):
     """ API for list all notes in a given label """
