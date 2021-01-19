@@ -51,7 +51,7 @@ class NoteDetails(generics.RetrieveUpdateAPIView):
         """ Save notes model instance with updated values """
         owner = self.request.user
         note = serializer.save()
-        cache.set(str(owner)+"-notes-"+str(note.id), note)
+        cache.set(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]), self.queryset.all())
         logger.info("udated note data is set")
         return note
         
@@ -63,11 +63,11 @@ class NoteDetails(generics.RetrieveUpdateAPIView):
             queryset = cache.get(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]))
             logger.info("udated note data is coming from cache")
             return queryset
-
         else:
-            queryset = self.queryset.filter(isDelete=False, id=self.kwargs[self.lookup_field])
+            queryset = self.queryset.filter(Q(owner=owner)|Q(collaborator=owner), Q(isArchive=False,isDelete=False))
             logger.info("updated note data is coming form DB")
-            cache.set(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]), queryset)
+            if queryset:
+                cache.set(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]), queryset)
             return queryset
             
 
@@ -87,11 +87,12 @@ class CreateAndListLabels(generics.ListCreateAPIView):
     """ API views for list and create labels for logged in user """
     serializer_class = LabelsSerializer
     queryset = Labels.objects.all()
-    permission_classes = (permissions.IsAuthenticated, )
+    permission_classes = (permissions.IsAuthenticated,)
     
     def perform_create(self,serializer):
         """ Create label instance with owner and validated data by serializer and """
-        label = serializer.save(owner=self.request.user)
+        owner = self.request.user
+        label = serializer.save(owner=owner)
         cache.set(str(owner)+"-labels-"+str(label.id), label)
         if cache.get(str(owner)+"-labels-"+str(label.id)):
             logger.info("Label data is stored in cache")
@@ -115,7 +116,7 @@ class LabelDetails(generics.RetrieveUpdateDestroyAPIView):
         """ Update label instance with validated data provided by serializer """
         owner = self.request.user
         label = serializer.save(owner=owner)
-        cache.set(str(owner)+"-labels-"+str(label.id), label)
+        cache.set(str(owner)+"-labels-"+str(self.kwargs[self.lookup_field]), self.queryset.all())
         logger.info("udated label data is set")
         return label
     
@@ -127,9 +128,10 @@ class LabelDetails(generics.RetrieveUpdateDestroyAPIView):
             logger.info("udated label data is coming from cache")
             return queryset
         else:
-            queryset = self.queryset.filter(owner=owner, id=self.kwargs[self.lookup_field])
+            queryset = self.queryset.filter(owner=owner)
             logger.info("updated label data is coming form DB")
-            cache.set(str(owner)+"-labels-"+str(self.kwargs[self.lookup_field]), queryset)
+            if queryset:
+                cache.set(str(owner)+"-labels-"+str(self.kwargs[self.lookup_field]), queryset)
             return queryset
 
     def perform_destroy(self, instance):
@@ -219,6 +221,7 @@ class TrashList(generics.ListAPIView):
     """ API to get list of all trashed notes list for user """
     permission_classes=(permissions.IsAuthenticated, IsOwner)
     serializer_class = TrashSerializer
+    queryset = Notes.objects.all()
     
     def get_queryset(self):
         """ Filetr the queryset by isDelete field and owner id """
@@ -268,11 +271,11 @@ class SearchNote(generics.GenericAPIView):
                     notes = cache.get(query)
                     logger.info("data is coming from cache")
                 else:
-                    notes = Notes.objects.filter(Q(title__icontains=query)|Q(content__icontains=query))
+                    notes = Notes.objects.filter(Q(title__icontains=query)|Q(content__icontains=query), Q(isArchive=False,isDelete=False))
                     if notes:
                         cache.set(query, notes)      
         else:
-            notes = Notes.objects.all(owner=owner, isArchive=False, isDelete=False)
+            notes = Notes.objects.filter(owner=owner, isArchive=False, isDelete=False)
         return notes
 
     def get(self, request):
@@ -282,7 +285,7 @@ class SearchNote(generics.GenericAPIView):
         else:
             note = self.get_queryset()
         serializer = NotesSerializer(note, many=True)
-        return Response({'response_data':serializer.data}, status=status.HTTP_200_OK)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class AddCollaborator(generics.GenericAPIView):
@@ -298,13 +301,13 @@ class AddCollaborator(generics.GenericAPIView):
         try:
             collaborator = User.objects.get(email=collaborator_email)
         except:
-            return Response({'This user email does not exist.'})
+            return Response({'This user email does not exist.'}, status=status.HTTP_404_NOT_FOUND)
         if collaborator==request.user:
-            return Response({'Detail': 'This email already exists!!!'})
+            return Response({'Detail': 'This email already exists!!!'}, status=status.HTTP_400_BAD_REQUEST)
         else:
             note.collaborator = collaborator
             note.save()
-            return Response({'collaborator':collaborator_email})
+            return Response({'collaborator':collaborator_email}, status=status.HTTP_200_OK)
 
     
         

@@ -6,6 +6,7 @@ from Notes.models import Notes, Labels
 from ..serializers import NotesSerializer, LabelsSerializer, ArchiveNotesSerializer, TrashSerializer, AddLabelsToNoteSerializer
 import json
 from django.views.decorators.csrf import csrf_exempt
+from django.db.models import Q
 
 CONTENT_TYPE = 'application/json'
 
@@ -20,11 +21,17 @@ class NotesAPITest(TestCase):
 
         self.user1 = User.objects.create(email='malibharti5@gmail.com', username='bharti',password='pbkdf2_sha256$180000$vf55wIVIolGs$orroOnnkyPPnUqNgUpgYK4yI9un4fl+Oy0Ig9MUF+DI=', is_active=True, is_verified=True, )
         self.user2 = User.objects.create(email='malibharti@gmail.com', username='bharti2',password='pbkdf2_sha256$180000$vf55wIVIolGs$orroOnnkyPPnUqNgUpgYK4yI9un4fl+Oy0Ig9MUF+DI=', is_active=True, is_verified=True, )
-        self.note_for_user1 = Notes.objects.create(title='note1', content='first note',owner=self.user1,isArchive=False, isDelete=False)
+        
+        self.note_for_user1 = Notes.objects.create(title='note1', content='first note',owner=self.user1,collaborator=None, isArchive=False, isDelete=False)
+        self.note2_for_user1 = Notes.objects.create(title='note2', content='second note',owner=self.user1,collaborator=None, isArchive=False, isDelete=False)
+        self.note3_for_user1 = Notes.objects.create(title='note3', content='third note',owner=self.user1, collaborator=self.user2, isArchive=False, isDelete=False)
+        
         self.note_for_user2 = Notes.objects.create(title='user2', content='note for user 2', owner=self.user2)
+        
         self.label_for_user1 = Labels.objects.create(name='label1', owner=self.user1)
         self.label_for_user2 = Labels.objects.create(name='label2', owner=self.user2)
         self.note_for_user1.label.add(self.label_for_user1.id)
+        
         self.valid_payload = {
             'title': 'test',
             'content': 'test'
@@ -61,10 +68,24 @@ class NotesAPITest(TestCase):
             'email':'malibharti5@gmail.com',
             'password':'bharti'
         }
+        self.user2_credentials = {
+            'email':'malibharti@gmail.com',
+            'password':'bharti'
+        }
         self.invalid_credentials = {
             'email':'malibharti11@gmail.com',
             'password':'bharti'
         }
+        self.search_valid_payload = {
+            'search' : 'note'
+        }
+        self.collaborator_valid_payload = {
+            'collaborator' : 'malibharti@gmail.com'
+        } 
+        self.collaborator_invalid_payload = {
+            'collaborator' : 'malibharti'
+        }
+
 
 ### List notes API test cases:
 
@@ -154,6 +175,11 @@ class NotesAPITest(TestCase):
         response = self.client.get(reverse('note',kwargs={'id': self.note_for_user2.id}))
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
+    def test_get_note_after_login_with_collaborator_credentials(self):
+        self.client.post(reverse('login'),data=json.dumps(self.user2_credentials), content_type=CONTENT_TYPE)
+        response = self.client.get(reverse('note',kwargs={'id':self.note3_for_user1.id}), content_type=CONTENT_TYPE)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
 ### Test cases for update note API by id
 
     def test_update_notes_with_valid_payload_without_login(self):
@@ -186,20 +212,25 @@ class NotesAPITest(TestCase):
         response = self.client.put(reverse('note',kwargs={'id':self.note_for_user2.id}), data=json.dumps(self.valid_payload), content_type=CONTENT_TYPE)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
+    def test_update_note_after_login_with_collaborator_credentials(self):
+        self.client.post(reverse('login'),data=json.dumps(self.user2_credentials), content_type=CONTENT_TYPE)
+        response = self.client.put(reverse('note',kwargs={'id':self.note3_for_user1.id}), data=json.dumps(self.valid_payload), content_type=CONTENT_TYPE)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
 ### Test cases for delete note API by id
 
     def test_delete_note_without_login(self):
-        response = self.client.delete(reverse('note',kwargs={'id':self.note_for_user1.id}), content_type=CONTENT_TYPE)
+        response = self.client.delete(reverse('delete-note',kwargs={'id':self.note_for_user1.id}), content_type=CONTENT_TYPE)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_delete_note_after_login_with_invalid_credentials(self):
         self.client.post(reverse('login'),data=json.dumps(self.invalid_credentials), content_type=CONTENT_TYPE)
-        response = self.client.delete(reverse('note',kwargs={'id':self.note_for_user1.id}), content_type=CONTENT_TYPE)
+        response = self.client.delete(reverse('delete-note',kwargs={'id':self.note_for_user1.id}), content_type=CONTENT_TYPE)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_delete_note_after_login(self):
         self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type=CONTENT_TYPE)
-        response = self.client.delete(reverse('note',kwargs={'id':self.note_for_user1.id}), content_type=CONTENT_TYPE)
+        response = self.client.delete(reverse('delete-note',kwargs={'id':self.note_for_user1.id}), content_type=CONTENT_TYPE)
         if response.status_code == status.HTTP_404_NOT_FOUND:
             self.assertNotEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         else:
@@ -208,8 +239,13 @@ class NotesAPITest(TestCase):
 
     def test_delete_note_of_other_user_after_login(self):
         self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type=CONTENT_TYPE)
-        response = self.client.delete(reverse('note',kwargs={'id':self.note_for_user2.id}), content_type=CONTENT_TYPE)
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        response = self.client.delete(reverse('delete-note',kwargs={'id':self.note_for_user2.id}), content_type=CONTENT_TYPE)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_delete_note_after_login_with_collaborator_credentials(self):
+        self.client.post(reverse('login'),data=json.dumps(self.user2_credentials), content_type=CONTENT_TYPE)
+        response = self.client.delete(reverse('delete-note',kwargs={'id':self.note3_for_user1.id}), content_type=CONTENT_TYPE)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 ### Test cases for create label: 
 
@@ -554,3 +590,47 @@ class NotesAPITest(TestCase):
             self.assertEqual(response.data, serializer.data)
         else:
             self.assertNotEqual(response.data, serializer.data)
+
+
+### SeacrhNote API test cases :
+
+    def test_get_note_list_with_searched_key_without_login(self):
+        response = self.client.get('http://localhost:8000/notes/search/?search=note', content_type=CONTENT_TYPE)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_get_note_list_with_searched_key_after_login(self):
+        self.client.post(reverse('login'), data=json.dumps(self.user1_credentials), content_type=CONTENT_TYPE)
+        response = self.client.get('http://localhost:8000/notes/search/?search=note', content_type=CONTENT_TYPE)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_get_note_list_without_searched_key_after_login(self):
+        self.client.post(reverse('login'), data=json.dumps(self.user1_credentials), content_type=CONTENT_TYPE)
+        response = self.client.get('http://localhost:8000/notes/search/?search=', content_type=CONTENT_TYPE)
+        notes = Notes.objects.filter(owner=self.user1, isDelete=False, isArchive=False)
+        serializer = NotesSerializer(notes, many=True)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, serializer.data)
+
+    def test_get_note_list_of_other_user_with_searched_key_after_login(self):
+        self.client.post(reverse('login'), data=json.dumps(self.user1_credentials), content_type=CONTENT_TYPE)
+        response = self.client.get('http://localhost:8000/notes/search/?search=note', content_type=CONTENT_TYPE)
+        notes = Notes.objects.filter(Q(title__icontains='note')|Q(content__icontains='note'), Q(owner=self.user2))
+        serializer = NotesSerializer(notes, many=True)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotEqual(response.data, serializer.data)
+
+### AddCollaborator API testcase : 
+
+    def test_add_collaborator_without_login(self):
+        response = self.client.post(reverse('collaborator', kwargs={'note_id': self.label_for_user1.id}), data=json.dumps(self.collaborator_valid_payload), content_type=CONTENT_TYPE)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_add_collaborator_after_login_with_invalid_credentials(self):
+        self.client.post(reverse('login'), data=json.dumps(self.invalid_credentials), content_type=CONTENT_TYPE)
+        response = self.client.post(reverse('collaborator', kwargs={'note_id': self.label_for_user1.id}), data=json.dumps(self.collaborator_valid_payload), content_type=CONTENT_TYPE)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_add_collaborator_after_login(self):
+        self.client.post(reverse('login'), data=json.dumps(self.user1_credentials), content_type=CONTENT_TYPE)
+        response = self.client.post(reverse('collaborator', kwargs={'note_id': self.label_for_user1.id}), data=json.dumps(self.collaborator_valid_payload), content_type=CONTENT_TYPE)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)

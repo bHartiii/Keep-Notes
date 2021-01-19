@@ -7,8 +7,8 @@ class NotesSerializer(serializers.ModelSerializer):
     collaborator = serializers.StringRelatedField()
     class Meta:
         model= Notes
-        fields=['title','content','isArchive','isDelete','owner_id','collaborator']
-        extra_kwargs = {'isDelete': {'read_only': True},'isArchive': {'read_only': True}, 'owner_id': {'read_only': True}, 'collaborator': {'read_only': True}}  
+        fields=['title','content','label','isArchive','isDelete','owner_id','collaborator']
+        extra_kwargs = {'isDelete': {'read_only': True},'isArchive': {'read_only': True}, 'owner_id': {'read_only': True}, 'collaborator': {'read_only': True}, 'label': {'read_only': True}}  
 
         def validate(self, data):
             title = data.get('title','')
