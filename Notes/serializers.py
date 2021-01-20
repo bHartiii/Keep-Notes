@@ -4,7 +4,7 @@ from authentication.models import User
 from rest_framework.renderers import JSONRenderer
 
 class NotesSerializer(serializers.ModelSerializer):
-    collaborator = serializers.StringRelatedField(read_only=True)
+    collaborator = serializers.StringRelatedField(many=True, read_only=True)
     label = serializers.StringRelatedField(many=True, read_only=True)
     class Meta:
         model= Notes
@@ -66,5 +66,8 @@ class AddCollaboratorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notes
         fields = ['title','content','label','owner','collaborator'] 
-        extra_kwargs = {'owner': {'read_only': True}, 'title': {'read_only': True}, 'content': {'read_only': True},'label': {'read_only': True}}
+        extra_kwargs = {'owner': {'read_only': True}, 'title': {'read_only': True}, 'content': {'read_only': True}}
 
+        def validate(self, attrs):
+            collaborator = attrs.get('collaborator','')
+            return attrs

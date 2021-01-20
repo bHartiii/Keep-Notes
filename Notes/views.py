@@ -291,11 +291,10 @@ class SearchNote(generics.GenericAPIView):
 
 
 class AddCollaborator(generics.GenericAPIView):
-    permission_classes = (permissions.IsAuthenticated, IsOwner)
+    permission_classes = (permissions.IsAuthenticated, IsCollaborator)
     serializer_class = AddCollaboratorSerializer
     
-
-    def post(self, request ,note_id):
+    def put(self, request ,note_id):
         note = Notes.objects.get(id=note_id)
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -307,7 +306,7 @@ class AddCollaborator(generics.GenericAPIView):
         if collaborator==request.user:
             return Response({'Detail': 'This email already exists!!!'}, status=status.HTTP_400_BAD_REQUEST)
         else:
-            note.collaborator = collaborator
+            note.collaborator.add(collaborator)
             note.save()
             return Response({'collaborator':collaborator_email}, status=status.HTTP_200_OK)
 
