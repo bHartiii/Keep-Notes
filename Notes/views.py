@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from Notes.serializers import NotesSerializer, LabelsSerializer, ArchiveNotesSerializer, TrashSerializer, AddLabelsToNoteSerializer, AddCollaboratorSerializer
+from Notes.serializers import NotesSerializer, LabelsSerializer, ArchiveNotesSerializer, TrashSerializer, AddLabelsToNoteSerializer,ListNoteInLabelSerializer, AddCollaboratorSerializer
 from Notes.permissions import IsOwner, IsCollaborator
 from Notes.models import Notes, Labels
 from authentication.models import User
@@ -253,13 +253,12 @@ class AddLabelsToNote(generics.GenericAPIView):
 class ListNotesInLabel(generics.ListAPIView):
     """ API for list all notes in a given label """
     permission_classes = (permissions.IsAuthenticated,IsOwner)
-    serializer_class = AddLabelsToNoteSerializer
-    queryset = Notes.objects.all()
-    lookup_field='id'
+    serializer_class = ListNoteInLabelSerializer
+    lookup_field='label_id'
 
     def get_queryset(self):
         """ Label is fetched by id """
-        return self.queryset.filter(owner=self.request.user,label=self.kwargs[self.lookup_field])
+        return Labels.objects.get(id=self.kwargs[self.lookup_field],owner=self.request.user).notes_set.all()
 
 
 class SearchNote(generics.GenericAPIView):
@@ -278,9 +277,7 @@ class SearchNote(generics.GenericAPIView):
                 else:
                     notes = Notes.objects.filter(Q(title__icontains=query)|Q(content__icontains=query), Q(isArchive=False,isDelete=False))
                     if notes:
-                        cache.set(query, notes)      
-        else:
-            notes = Notes.objects.filter(owner=owner, isArchive=False, isDelete=False)
+                        cache.set(query, notes)  
         return notes
 
     def get(self, request):
@@ -288,7 +285,7 @@ class SearchNote(generics.GenericAPIView):
         if queryset:
             note = self.get_queryset(queryset)
         else:
-            note = self.get_queryset()
+            return Response({'response':'Give some search string!!!'})
         serializer = NotesSerializer(note, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

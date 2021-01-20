@@ -15,7 +15,7 @@ urlpatterns = [
     path('archive-list/', ArchiveNotesList.as_view(), name='archive-list'),
     path('trash-list/',TrashList.as_view(), name='trash-list'),
     path('add-label/<int:note_id>', AddLabelsToNote.as_view(), name='add-label'),
-    path('list-notes-in-label/<int:id>', ListNotesInLabel.as_view(), name='list-notes-in-label'),
+    path('list-notes-in-label/<int:label_id>', ListNotesInLabel.as_view(), name='list-notes-in-label'),
     path('search/', SearchNote.as_view(), name='search'),
     path('collaborator/<int:note_id>', AddCollaborator.as_view(), name='collaborator'),
 ]
