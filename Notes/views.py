@@ -34,8 +34,8 @@ class CreateAndListNotes(generics.ListCreateAPIView):
     def get_queryset(self): 
         """ Get notes list owned by current logged in user """
         owner = self.request.user
-        return self.queryset.filter(Q(owner=owner)|Q(collaborator=owner), Q(isArchive=False,isDelete=False))   
-        
+        return self.queryset.filter(Q(owner=owner)|Q(collaborator=owner), Q(isArchive=False,isDelete=False)).distinct()   
+                          
 
 class NoteDetails(generics.RetrieveUpdateAPIView):
     """ API views to retrieve, update, and delete note by id for requested user """
@@ -60,7 +60,7 @@ class NoteDetails(generics.RetrieveUpdateAPIView):
             logger.info("udated note data is coming from cache")
             return queryset
         else:
-            queryset = self.queryset.filter(Q(owner=owner)|Q(collaborator=owner), Q(isArchive=False,isDelete=False))
+            queryset = self.queryset.filter(isArchive=False,isDelete=False)
             logger.info("updated note data is coming form DB")
             if queryset:
                 cache.set(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]), queryset)
