@@ -4,15 +4,13 @@ from Notes.permissions import IsOwner, IsCollaborator
 from Notes.models import Notes, Labels
 from authentication.models import User
 from rest_framework import generics, permissions
-from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from rest_framework.response import Response
 from django.conf import settings
 from django.db.models import Q
 from django.core.cache import cache
 from rest_framework import status
 import logging
-import json
-import redis_cache
+from datetime import datetime
 
 logger = logging.getLogger('django')
 
@@ -165,8 +163,7 @@ class ArchiveNote(generics.RetrieveUpdateAPIView):
         """ Update archive field with new boolean value given"""
         owner = self.request.user
         note = serializer.save(owner=owner)
-        a=cache.set(str(owner)+"-notes-"+str(note.id), note)
-        logger.info(a)
+        a=cache.set(str(owner)+"-notes-"+str(note.id), self.queryset.all())
         logger.info("udated archive note data is set")
         return note
     
@@ -192,11 +189,14 @@ class TrashUntrash(generics.RetrieveUpdateAPIView):
     def perform_update(self,serializer):
         """ Update delete field value of note with value given by user """
         owner = self.request.user
-        note = serializer.save(owner=owner)
+        if serializer.validated_data['isDelete']==True:
+            note = serializer.save(owner=owner, trashedAt=datetime.now())
+        else:
+            note = serializer.save(owner=owner, trashedAt=None)
         if note.isDelete==True:
             cache.delete(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]))
         else:
-            cache.set(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]), note)
+            cache.set(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]), self.queryset.all())
         logger.info("udated trashed note data is set")
         return note
         
@@ -206,7 +206,6 @@ class TrashUntrash(generics.RetrieveUpdateAPIView):
         owner = self.request.user
         if cache.get(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field])):
             queryset = cache.get(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]))
-            logger.info(queryset)
             logger.info("udated trashed note data is coming from cache")
             return queryset
 
