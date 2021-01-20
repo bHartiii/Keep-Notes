@@ -31,12 +31,12 @@ class CreateAndListNotes(generics.ListCreateAPIView):
             logger.info("Data is stored in cache")
         return Response({'success':'New note is created!!'}, status=status.HTTP_201_CREATED)
     
-    
     def get_queryset(self): 
         """ Get notes list owned by current logged in user """
         owner = self.request.user
-        return self.queryset.filter(Q(owner=owner)|Q(collaborator=owner), Q(isArchive=False,isDelete=False))   
-         
+        queryset = self.queryset.filter(Q(owner=owner)|Q(collaborator=owner), Q(isArchive=False,isDelete=False))   
+        return Response({'response': queryset}, status=status.HTTP_200_OK)
+
 
 class NoteDetails(generics.RetrieveUpdateAPIView):
     """ API views to retrieve, update, and delete note by id for requested user """
@@ -51,8 +51,7 @@ class NoteDetails(generics.RetrieveUpdateAPIView):
         note = serializer.save()
         cache.set(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]), self.queryset.all())
         logger.info("udated note data is set")
-        return note
-        
+        return Response({'response': note}, status=status.HTTP_200_OK)
 
     def get_queryset(self):
         """ Get note for given id owned by user """
@@ -60,13 +59,13 @@ class NoteDetails(generics.RetrieveUpdateAPIView):
         if cache.get(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field])):
             queryset = cache.get(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]))
             logger.info("udated note data is coming from cache")
-            return queryset
+            return Response({'response': queryset}, status=status.HTTP_200_OK)
         else:
             queryset = self.queryset.filter(Q(owner=owner)|Q(collaborator=owner), Q(isArchive=False,isDelete=False))
             logger.info("updated note data is coming form DB")
             if queryset:
                 cache.set(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]), queryset)
-            return queryset
+            return Response({'response': queryset}, status=status.HTTP_200_OK)
             
 
 class DeleteNote(generics.DestroyAPIView):
@@ -79,6 +78,7 @@ class DeleteNote(generics.DestroyAPIView):
         owner = self.request.user
         cache.delete(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]))
         instance.delete()
+        return Response({'response': 'Note is deleted permanently.'})
 
 
 class CreateAndListLabels(generics.ListCreateAPIView):
@@ -95,12 +95,12 @@ class CreateAndListLabels(generics.ListCreateAPIView):
         if cache.get(str(owner)+"-labels-"+str(label.id)):
             logger.info("Label data is stored in cache")
         return Response({'success':'New label is created!!'}, status=status.HTTP_201_CREATED)
-    
 
     def get_queryset(self):
         """ List all labels qwned by user """
         owner = self.request.user
-        return self.queryset.filter(owner=owner)
+        queryset = self.queryset.filter(owner=owner)
+        return Response({'response': queryset}, status=status.HTTP_200_OK)
 
 
 class LabelDetails(generics.RetrieveUpdateDestroyAPIView):
@@ -116,7 +116,7 @@ class LabelDetails(generics.RetrieveUpdateDestroyAPIView):
         label = serializer.save(owner=owner)
         cache.set(str(owner)+"-labels-"+str(self.kwargs[self.lookup_field]), self.queryset.all())
         logger.info("udated label data is set")
-        return label
+        return Response({'response':label}, status=status.HTTP_200_OK)
     
     def get_queryset(self):
         """ Get label details for given label id owned by user """
@@ -124,18 +124,19 @@ class LabelDetails(generics.RetrieveUpdateDestroyAPIView):
         if cache.get(str(owner)+"-labels-"+str(self.kwargs[self.lookup_field])):
             queryset = cache.get(str(owner)+"-labels-"+str(self.kwargs[self.lookup_field]))
             logger.info("udated label data is coming from cache")
-            return queryset
+            return Response({'response': queryset}, status=status.HTTP_200_OK)
         else:
             queryset = self.queryset.filter(owner=owner)
             logger.info("updated label data is coming form DB")
             if queryset:
                 cache.set(str(owner)+"-labels-"+str(self.kwargs[self.lookup_field]), queryset)
-            return queryset
+            return Response({'response': queryset}, status=status.HTTP_200_OK)
 
     def perform_destroy(self, instance):
         owner = self.request.user
         cache.delete(str(owner)+"-labels-"+str(self.kwargs[self.lookup_field]))
         instance.delete()
+        return Response({'response': 'Label is deleted.'})
 
 
 class ArchiveNote(generics.RetrieveUpdateAPIView):
@@ -151,13 +152,12 @@ class ArchiveNote(generics.RetrieveUpdateAPIView):
         if cache.get(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field])):
             queryset = cache.get(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]))
             logger.info("udated archive notes data is coming from cache")
-            return queryset
+            return Response({'response': queryset}, status=status.HTTP_200_OK)
         else:
             queryset = self.queryset.filter(owner=owner,isDelete=False, id=self.kwargs[self.lookup_field])
             logger.info("updated archive note data is coming form DB")
             cache.set(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]), queryset)
-            return queryset
-        
+            return Response({'response': queryset}, status=status.HTTP_200_OK)
  
     def perform_update(self,serializer):
         """ Update archive field with new boolean value given"""
@@ -165,7 +165,7 @@ class ArchiveNote(generics.RetrieveUpdateAPIView):
         note = serializer.save(owner=owner)
         a=cache.set(str(owner)+"-notes-"+str(note.id), self.queryset.all())
         logger.info("udated archive note data is set")
-        return note
+        return Response({'response':note}, status=status.HTTP_200_OK)
     
 
 class ArchiveNotesList(generics.ListAPIView):
@@ -176,7 +176,8 @@ class ArchiveNotesList(generics.ListAPIView):
     
     def get_queryset(self):
         """ filter the queryset for isArchive field value and owner """
-        return self.queryset.filter(owner=self.request.user,isArchive=True, isDelete=False)
+        queryset = self.queryset.filter(owner=self.request.user,isArchive=True, isDelete=False)
+        return Response({'response': queryset}, status=status.HTTP_200_OK)
 
 
 class TrashUntrash(generics.RetrieveUpdateAPIView):
@@ -198,7 +199,7 @@ class TrashUntrash(generics.RetrieveUpdateAPIView):
         else:
             cache.set(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]), self.queryset.all())
         logger.info("udated trashed note data is set")
-        return note
+        return Response({'response':note}, status=status.HTTP_200_OK)
         
 
     def get_queryset(self):
@@ -207,13 +208,13 @@ class TrashUntrash(generics.RetrieveUpdateAPIView):
         if cache.get(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field])):
             queryset = cache.get(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]))
             logger.info("udated trashed note data is coming from cache")
-            return queryset
+            return Response({'response': queryset}, status=status.HTTP_200_OK)
 
         else:
             queryset = self.queryset.filter(owner=owner, id=self.kwargs[self.lookup_field])
             logger.info("updated trashed note data is coming form DB")
             cache.set(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]), queryset)
-            return queryset
+            return Response({'response': queryset}, status=status.HTTP_200_OK)
         
 
 class TrashList(generics.ListAPIView):
@@ -225,7 +226,8 @@ class TrashList(generics.ListAPIView):
     def get_queryset(self):
         """ Filetr the queryset by isDelete field and owner id """
         owner = self.request.user
-        return self.queryset.filter(owner=owner, isDelete=True)
+        queryset = self.queryset.filter(owner=owner, isDelete=True)
+        return Response({'response': queryset}, status=status.HTTP_200_OK)
 
 
 class AddLabelsToNote(generics.GenericAPIView):
@@ -258,7 +260,8 @@ class ListNotesInLabel(generics.ListAPIView):
 
     def get_queryset(self):
         """ Label is fetched by id """
-        return Labels.objects.get(id=self.kwargs[self.lookup_field],owner=self.request.user).notes_set.all()
+        queryset = Labels.objects.get(id=self.kwargs[self.lookup_field],owner=self.request.user).notes_set.all()
+        return Response({'response': queryset}, status=status.HTTP_200_OK)
 
 
 class SearchNote(generics.GenericAPIView):

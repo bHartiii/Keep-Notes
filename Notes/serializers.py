@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from Notes.models import Notes, Labels
 from authentication.models import User
-from rest_framework.renderers import JSONRenderer
 
 class NotesSerializer(serializers.ModelSerializer):
     collaborator = serializers.StringRelatedField(many=True, read_only=True)
@@ -15,11 +14,13 @@ class NotesSerializer(serializers.ModelSerializer):
             content = data.get('content','')
             return data
 
+
 class LabelsSerializer(serializers.ModelSerializer):
     class Meta:
         model= Labels
         fields=['name','owner']
         extra_kwargs = {'owner':{'read_only':True}}
+
 
 class ArchiveNotesSerializer(serializers.ModelSerializer):
     label = serializers.StringRelatedField(many=True, read_only=True)
@@ -28,6 +29,7 @@ class ArchiveNotesSerializer(serializers.ModelSerializer):
         model= Notes
         fields=['owner_id','title','content','isArchive','label','collaborator']
         extra_kwargs = {'title': {'read_only': True},'content': {'read_only': True},'owner_id': {'read_only': True}}   
+        
 
 class TrashSerializer(serializers.ModelSerializer):
     label = serializers.StringRelatedField(many=True, read_only=True)

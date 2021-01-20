@@ -53,6 +53,7 @@ class RegisterView(generics.GenericAPIView):
         Util.send_email(data) 
         return Response(user_data,status=status.HTTP_201_CREATED)
 
+
 class VerifyEmail(generics.GenericAPIView):
     """
         API to decode token sent on email to match user details
@@ -157,7 +158,7 @@ class NewPassword(generics.GenericAPIView):
         except jwt.ExpiredSignatureError:
             return Response({'error':'Link is Expired'}, status=status.HTTP_400_BAD_REQUEST)
         except jwt.exceptions.DecodeError:
-            return  
+            return Response({'error':'Invalid Token'}, status=status.HTTP_400_BAD_REQUEST)  
 
 
 class LogoutView(generics.GenericAPIView):
@@ -168,6 +169,7 @@ class LogoutView(generics.GenericAPIView):
     def get(self, request):
         logout(request)
         return Response({"success": "Successfully logged out."},status=status.HTTP_200_OK)
+
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
     """
@@ -181,11 +183,12 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
         """
             Returns current logged in user profile instance
         """        
-        return self.request.user.profile
+        profile = self.request.user.profile
+        return Response({'response': profile}, status=status.HTTP_200_OK)
 
     def perform_create(self):
         """
             Save the updated user profile instance
         """
-        return serializer.save(user=self.request.user)
-    
+        profile = serializer.save(user=self.request.user)
+        return Response({'response': profile}, status=status.HTTP_200_OK)

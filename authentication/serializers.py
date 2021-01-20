@@ -4,11 +4,11 @@ from django.contrib import auth
 from rest_framework.exceptions import AuthenticationFailed
 from django.contrib.auth import authenticate
 
-class UserProfileSerializer(serializers.ModelSerializer):
-    
+class UserProfileSerializer(serializers.ModelSerializer):    
     class Meta:
         model = UserProfile
         fields = ['first_name', 'last_name', 'DOB','image']
+
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(max_length=68,  min_length=6, write_only=True)
@@ -34,6 +34,7 @@ class EmailVerificationSerializer(serializers.ModelSerializer):
         model=User
         fields=['token']
 
+
 class LoginSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(max_length=255, min_length=3)
     password = serializers.CharField(max_length=68, min_length=6)
@@ -57,8 +58,8 @@ class LoginSerializer(serializers.ModelSerializer):
 
         except serializers.ValidationError:
             return {'error':"Please provide email and password"}
-
         return attrs
+
 
 class ResetPasswordSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(max_length=255, min_length=3)
@@ -66,7 +67,6 @@ class ResetPasswordSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['email']
-
     
     def validate(self, attrs):
         email = attrs.get('email','')        
@@ -75,9 +75,9 @@ class ResetPasswordSerializer(serializers.ModelSerializer):
             if not user.is_verified:
                 raise serializers.ValidationError("This email id is not verified!!")
         except User.DoesNotExist:
-            raise serializers.ValidationError("This email is not registerd")
-    
+            raise serializers.ValidationError("This email is not registerd")    
         return attrs
+
 
 class NewPasswordSerializer(serializers.ModelSerializer):
     password = serializers.CharField(max_length=68, min_length=6)
@@ -89,11 +89,9 @@ class NewPasswordSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         password = attrs.get('password','')
-        password2 = attrs.get('password2','')
-        
+        password2 = attrs.get('password2','')        
         if password != password2:
             raise serializers.ValidationError("Password not matched!!")
-        
         return attrs
 
 
