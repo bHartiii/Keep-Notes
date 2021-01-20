@@ -183,9 +183,8 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
         """
             Returns current logged in user profile instance
         """        
-        profile = self.request.user.profile
-        return Response({'response': profile}, status=status.HTTP_200_OK)
-
+        return self.request.user.profile
+        
     def perform_create(self):
         """
             Save the updated user profile instance

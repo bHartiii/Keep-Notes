@@ -3,7 +3,7 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from authentication.models import User, UserProfile
 from Notes.models import Notes, Labels
-from ..serializers import NotesSerializer, LabelsSerializer, ArchiveNotesSerializer, TrashSerializer, AddLabelsToNoteSerializer
+from ..serializers import NotesSerializer, LabelsSerializer, ArchiveNotesSerializer, TrashSerializer, AddLabelsToNoteSerializer, ListNoteInLabelSerializer
 import json
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q
@@ -22,15 +22,16 @@ class NotesAPITest(TestCase):
         self.user1 = User.objects.create(email='malibharti5@gmail.com', username='bharti',password='pbkdf2_sha256$180000$vf55wIVIolGs$orroOnnkyPPnUqNgUpgYK4yI9un4fl+Oy0Ig9MUF+DI=', is_active=True, is_verified=True, )
         self.user2 = User.objects.create(email='malibharti@gmail.com', username='bharti2',password='pbkdf2_sha256$180000$vf55wIVIolGs$orroOnnkyPPnUqNgUpgYK4yI9un4fl+Oy0Ig9MUF+DI=', is_active=True, is_verified=True, )
         
-        self.note_for_user1 = Notes.objects.create(title='note1', content='first note',owner=self.user1,collaborator=None, isArchive=False, isDelete=False)
-        self.note2_for_user1 = Notes.objects.create(title='note2', content='second note',owner=self.user1,collaborator=None, isArchive=False, isDelete=False)
-        self.note3_for_user1 = Notes.objects.create(title='note3', content='third note',owner=self.user1, collaborator=self.user2, isArchive=False, isDelete=False)
+        self.note_for_user1 = Notes.objects.create(title='note1', content='first note',owner=self.user1, isArchive=False, isDelete=False)
+        self.note2_for_user1 = Notes.objects.create(title='note2', content='second note',owner=self.user1, isArchive=False, isDelete=False)
+        self.note3_for_user1 = Notes.objects.create(title='note3', content='third note',owner=self.user1,  isArchive=False, isDelete=False)
         
         self.note_for_user2 = Notes.objects.create(title='user2', content='note for user 2', owner=self.user2)
         
         self.label_for_user1 = Labels.objects.create(name='label1', owner=self.user1)
         self.label_for_user2 = Labels.objects.create(name='label2', owner=self.user2)
         self.note_for_user1.label.add(self.label_for_user1.id)
+        self.note3_for_user1.collaborator.add(self.user2)
         
         self.valid_payload = {
             'title': 'test',
@@ -173,7 +174,7 @@ class NotesAPITest(TestCase):
     def test_get_notes_by_id_of_other_user_after_login(self):
         self.client.post(reverse('login'),data=json.dumps(self.user1_credentials),content_type=CONTENT_TYPE)
         response = self.client.get(reverse('note',kwargs={'id': self.note_for_user2.id}))
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_get_note_after_login_with_collaborator_credentials(self):
         self.client.post(reverse('login'),data=json.dumps(self.user2_credentials), content_type=CONTENT_TYPE)
@@ -210,7 +211,7 @@ class NotesAPITest(TestCase):
     def test_update_notes_with_other_user_note_using_valid_payload_after_login(self):
         self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type=CONTENT_TYPE)
         response = self.client.put(reverse('note',kwargs={'id':self.note_for_user2.id}), data=json.dumps(self.valid_payload), content_type=CONTENT_TYPE)
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_update_note_after_login_with_collaborator_credentials(self):
         self.client.post(reverse('login'),data=json.dumps(self.user2_credentials), content_type=CONTENT_TYPE)
@@ -566,26 +567,26 @@ class NotesAPITest(TestCase):
 ### Test cases for list-notes-in-label
 
     def test_get_note_list_in_label_without_login(self):
-        response = self.client.get(reverse('list-notes-in-label', kwargs={'id': self.label_for_user1.id}), content_type=CONTENT_TYPE)
+        response = self.client.get(reverse('list-notes-in-label', kwargs={'label_id': self.label_for_user1.id}), content_type=CONTENT_TYPE)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_get_note_list_in_label_after_login_with_invalid_credentials(self):
         self.client.post(reverse('login'),data=json.dumps(self.invalid_credentials), content_type=CONTENT_TYPE)
-        response = self.client.get(reverse('list-notes-in-label', kwargs={'id': self.label_for_user1.id}), content_type=CONTENT_TYPE)
+        response = self.client.get(reverse('list-notes-in-label', kwargs={'label_id': self.label_for_user1.id}), content_type=CONTENT_TYPE)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_get_note_list_in_label_after_login(self):
         self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type=CONTENT_TYPE)
         notes = Notes.objects.filter(owner=self.user1.id, label=self.label_for_user1.id)
-        serializer = AddLabelsToNoteSerializer(notes, many=True)
-        response = self.client.get(reverse('list-notes-in-label', kwargs={'id': self.label_for_user1.id}), content_type=CONTENT_TYPE)
+        serializer = ListNoteInLabelSerializer(notes, many=True)
+        response = self.client.get(reverse('list-notes-in-label', kwargs={'label_id': self.label_for_user1.id}), content_type=CONTENT_TYPE)
         self.assertEqual(response.data, serializer.data)
 
     def test_get_note_list_in_label_of_other_user_after_login(self):
         self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type=CONTENT_TYPE)
         notes = Notes.objects.filter(owner=self.user2.id, label=self.label_for_user2.id)
-        serializer = AddLabelsToNoteSerializer(notes, many=True)
-        response = self.client.get(reverse('list-notes-in-label', kwargs={'id': self.label_for_user1.id}), content_type=CONTENT_TYPE)
+        serializer = ListNoteInLabelSerializer(notes, many=True)
+        response = self.client.get(reverse('list-notes-in-label', kwargs={'label_id': self.label_for_user1.id}), content_type=CONTENT_TYPE)
         if (not response.data) and (not serializer.data):
             self.assertEqual(response.data, serializer.data)
         else:
@@ -609,7 +610,7 @@ class NotesAPITest(TestCase):
         notes = Notes.objects.filter(owner=self.user1, isDelete=False, isArchive=False)
         serializer = NotesSerializer(notes, many=True)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data, serializer.data)
+        self.assertNotEqual(response.data, serializer.data)
 
     def test_get_note_list_of_other_user_with_searched_key_after_login(self):
         self.client.post(reverse('login'), data=json.dumps(self.user1_credentials), content_type=CONTENT_TYPE)
@@ -632,5 +633,5 @@ class NotesAPITest(TestCase):
 
     def test_add_collaborator_after_login(self):
         self.client.post(reverse('login'), data=json.dumps(self.user1_credentials), content_type=CONTENT_TYPE)
-        response = self.client.post(reverse('collaborator', kwargs={'note_id': self.label_for_user1.id}), data=json.dumps(self.collaborator_valid_payload), content_type=CONTENT_TYPE)
+        response = self.client.put(reverse('collaborator', kwargs={'note_id': self.label_for_user1.id}), data=json.dumps(self.collaborator_valid_payload), content_type=CONTENT_TYPE)
         self.assertEqual(response.status_code, status.HTTP_200_OK)

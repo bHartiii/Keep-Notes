@@ -29,7 +29,7 @@ class ArchiveNotesSerializer(serializers.ModelSerializer):
         model= Notes
         fields=['owner_id','title','content','isArchive','label','collaborator']
         extra_kwargs = {'title': {'read_only': True},'content': {'read_only': True},'owner_id': {'read_only': True}}   
-        
+
 
 class TrashSerializer(serializers.ModelSerializer):
     label = serializers.StringRelatedField(many=True, read_only=True)
@@ -42,11 +42,10 @@ class TrashSerializer(serializers.ModelSerializer):
 
 class AddLabelsToNoteSerializer(serializers.ModelSerializer):
     label =serializers.CharField()
-    collaborator = serializers.StringRelatedField(many=True, read_only=True)
     class Meta:
         model = Notes
-        fields=['owner','title','content','label','collaborator']
-        extra_kwargs = {'owner': {'read_only': True}, 'title': {'read_only': True}, 'content': {'read_only': True}}
+        fields=['owner','title','content','label']
+        extra_kwargs = {'owner': {'read_only': True}, 'title': {'read_only': True},'content': {'read_only': True}}
 
         def validate(self, attrs):
             label = attrs.get('label','')
