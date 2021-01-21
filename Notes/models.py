@@ -23,6 +23,7 @@ class Notes(models.Model):
     isDelete = models.BooleanField(default=False)
     trashedAt = models.DateTimeField(default=None, null=True, blank=True)
     date = models.DateTimeField(auto_now_add=True, null=False, blank=False)
+    reminder = models.DateTimeField(default=None, null=True, blank=True)
     collaborator = models.ManyToManyField(to=User, related_name='collaborator')
 
     def get_content(self):

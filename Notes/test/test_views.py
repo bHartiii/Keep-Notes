@@ -596,17 +596,17 @@ class NotesAPITest(TestCase):
 ### SeacrhNote API test cases :
 
     def test_get_note_list_with_searched_key_without_login(self):
-        response = self.client.get('http://localhost:8000/notes/search/?search=note', content_type=CONTENT_TYPE)
+        response = self.client.get('/notes/search/?search=note', content_type=CONTENT_TYPE)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_get_note_list_with_searched_key_after_login(self):
         self.client.post(reverse('login'), data=json.dumps(self.user1_credentials), content_type=CONTENT_TYPE)
-        response = self.client.get('http://localhost:8000/notes/search/?search=note', content_type=CONTENT_TYPE)
+        response = self.client.get('/notes/search/?search=note', content_type=CONTENT_TYPE)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_get_note_list_without_searched_key_after_login(self):
         self.client.post(reverse('login'), data=json.dumps(self.user1_credentials), content_type=CONTENT_TYPE)
-        response = self.client.get('http://localhost:8000/notes/search/?search=', content_type=CONTENT_TYPE)
+        response = self.client.get('/notes/search/?search=', content_type=CONTENT_TYPE)
         notes = Notes.objects.filter(owner=self.user1, isDelete=False, isArchive=False)
         serializer = NotesSerializer(notes, many=True)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -614,7 +614,7 @@ class NotesAPITest(TestCase):
 
     def test_get_note_list_of_other_user_with_searched_key_after_login(self):
         self.client.post(reverse('login'), data=json.dumps(self.user1_credentials), content_type=CONTENT_TYPE)
-        response = self.client.get('http://localhost:8000/notes/search/?search=note', content_type=CONTENT_TYPE)
+        response = self.client.get('/notes/search/?search=note', content_type=CONTENT_TYPE)
         notes = Notes.objects.filter(Q(title__icontains='note')|Q(content__icontains='note'), Q(owner=self.user2))
         serializer = NotesSerializer(notes, many=True)
         self.assertEqual(response.status_code, status.HTTP_200_OK)

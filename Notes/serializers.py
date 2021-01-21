@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from Notes.models import Notes, Labels
 from authentication.models import User
+from datetime import datetime, timedelta
 
 class NotesSerializer(serializers.ModelSerializer):
     collaborator = serializers.StringRelatedField(many=True, read_only=True)
@@ -41,15 +42,16 @@ class TrashSerializer(serializers.ModelSerializer):
 
 
 class AddLabelsToNoteSerializer(serializers.ModelSerializer):
-    label =serializers.CharField()
+    label = serializers.CharField()
+    collaborator = serializers.StringRelatedField(read_only=True)
     class Meta:
         model = Notes
-        fields=['owner','title','content','label']
+        fields=['owner','title','content','label','collaborator']
         extra_kwargs = {'owner': {'read_only': True}, 'title': {'read_only': True},'content': {'read_only': True}}
 
         def validate(self, attrs):
             label = attrs.get('label','')
-            return attrs
+            return label
 
 
 class ListNoteInLabelSerializer(serializers.ModelSerializer):
@@ -72,3 +74,13 @@ class AddCollaboratorSerializer(serializers.ModelSerializer):
         def validate(self, attrs):
             collaborator = attrs.get('collaborator','')
             return attrs
+
+
+class ReminderSerializer(serializers.ModelSerializer):
+    collaborator = serializers.StringRelatedField(many=True, read_only=True)
+    label = serializers.StringRelatedField(many=True, read_only=True)
+    reminder = serializers.DateTimeField()
+    class Meta:
+        model = Notes
+        fields = ['title','content','owner','reminder','label','collaborator'] 
+        extra_kwargs = {'owner': {'read_only': True}, 'title': {'read_only': True}, 'content': {'read_only': True}}

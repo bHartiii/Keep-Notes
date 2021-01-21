@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from Notes.serializers import NotesSerializer, LabelsSerializer, ArchiveNotesSerializer, TrashSerializer, AddLabelsToNoteSerializer,ListNoteInLabelSerializer, AddCollaboratorSerializer
+from Notes.serializers import NotesSerializer, LabelsSerializer, ArchiveNotesSerializer, TrashSerializer, AddLabelsToNoteSerializer,ListNoteInLabelSerializer, AddCollaboratorSerializer,ReminderSerializer
 from Notes.permissions import IsOwner, IsCollaborator
 from Notes.models import Notes, Labels
 from authentication.models import User
@@ -10,7 +10,7 @@ from django.db.models import Q
 from django.core.cache import cache
 from rest_framework import status
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 logger = logging.getLogger('django')
 
@@ -238,7 +238,7 @@ class AddLabelsToNote(generics.GenericAPIView):
             return Response({'response':'Note does not exist'}, status=status.HTTP_404_NOT_FOUND)
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-        label_name = serializer.data['label']
+        label_name = serializer.validated_data['label']
         try:
             label = Labels.objects.get(name=label_name, owner=self.request.user)
         except Labels.DoesNotExist:
@@ -308,9 +308,33 @@ class AddCollaborator(generics.GenericAPIView):
             note.save()
             return Response({'collaborator':collaborator_email}, status=status.HTTP_200_OK)
 
-    
-        
 
+class Reminder(generics.GenericAPIView):
+
+    serializer_class = ReminderSerializer
+    permission_classes = (permissions.IsAuthenticated,IsCollaborator)
+
+    def get_queryset(self, note_id):
+        return Notes.objects.get(id = note_id)
+
+    def put(self,request, note_id):
+        note = Notes.objects.get(id = note_id)
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        reminder = serializer.validated_data['reminder']
+        if reminder - datetime.now() < timedelta(seconds=0):
+            return Response({'response':'Invalid Time Given'})
+        else:
+            note.reminder = reminder
+            note.save()
+            return Response({'response':serializer.data}, status=status.HTTP_200_OK)
+
+        
+    def get(self,request, note_id):
+        note = self.get_queryset(note_id)
+        serializer = self.serializer_class(note)
+        return Response({'response':serializer.data}, status=status.HTTP_200_OK)
+        
 
 
 
