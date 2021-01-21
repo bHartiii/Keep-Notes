@@ -23,6 +23,16 @@ class LabelsSerializer(serializers.ModelSerializer):
         extra_kwargs = {'owner':{'read_only':True}}
 
 
+
+class ListNotesSerializer(serializers.ModelSerializer):
+    label = serializers.StringRelatedField(many=True, read_only=True)
+    collaborator = serializers.StringRelatedField(many=True, read_only=True)
+    class Meta:
+        model = Notes
+        fields=['owner','title','content','label','collaborator']
+        extra_kwargs = {'owner': {'read_only': True}, 'title': {'read_only': True}, 'content': {'read_only': True}}
+
+
 class ArchiveNotesSerializer(serializers.ModelSerializer):
     label = serializers.StringRelatedField(many=True, read_only=True)
     collaborator = serializers.StringRelatedField(many=True, read_only=True)
@@ -52,15 +62,6 @@ class AddLabelsToNoteSerializer(serializers.ModelSerializer):
         def validate(self, attrs):
             label = attrs.get('label','')
             return label
-
-
-class ListNoteInLabelSerializer(serializers.ModelSerializer):
-    label = serializers.StringRelatedField(many=True, read_only=True)
-    collaborator = serializers.StringRelatedField(many=True, read_only=True)
-    class Meta:
-        model = Notes
-        fields=['owner','title','content','label','collaborator']
-        extra_kwargs = {'owner': {'read_only': True}, 'title': {'read_only': True}, 'content': {'read_only': True}}
 
 
 class AddCollaboratorSerializer(serializers.ModelSerializer):

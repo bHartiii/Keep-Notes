@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from Notes.serializers import NotesSerializer, LabelsSerializer, ArchiveNotesSerializer, TrashSerializer, AddLabelsToNoteSerializer,ListNoteInLabelSerializer, AddCollaboratorSerializer,ReminderSerializer
+from Notes.serializers import NotesSerializer, LabelsSerializer, ArchiveNotesSerializer, TrashSerializer, AddLabelsToNoteSerializer,ListNotesSerializer, AddCollaboratorSerializer,ReminderSerializer
 from Notes.permissions import IsOwner, IsCollaborator
 from Notes.models import Notes, Labels
 from authentication.models import User
@@ -231,9 +231,12 @@ class AddLabelsToNote(generics.GenericAPIView):
     permission_classes = (permissions.IsAuthenticated,IsOwner)
     serializer_class = AddLabelsToNoteSerializer
 
+    def get_queryset(self, note_id):
+        return Notes.objects.get(id = note_id)
+
     def put(self, request, note_id):
         try:
-            note = Notes.objects.get(id=note_id, owner=request.user)
+            note = self.get_queryset(note_id)
         except Notes.DoesNotExist:
             return Response({'response':'Note does not exist'}, status=status.HTTP_404_NOT_FOUND)
         serializer = self.serializer_class(data=request.data)
@@ -247,11 +250,16 @@ class AddLabelsToNote(generics.GenericAPIView):
         note.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    def get(self,request, note_id):
+        note = self.get_queryset(note_id)
+        serializer = ListNotesSerializer(note)
+        return Response({'response':serializer.data}, status=status.HTTP_200_OK)
+
 
 class ListNotesInLabel(generics.ListAPIView):
     """ API for list all notes in a given label """
     permission_classes = (permissions.IsAuthenticated,IsOwner)
-    serializer_class = ListNoteInLabelSerializer
+    serializer_class = ListNotesSerializer
     lookup_field='label_id'
 
     def get_queryset(self):
@@ -291,9 +299,12 @@ class SearchNote(generics.GenericAPIView):
 class AddCollaborator(generics.GenericAPIView):
     permission_classes = (permissions.IsAuthenticated, IsCollaborator)
     serializer_class = AddCollaboratorSerializer
+
+    def get_queryset(self, note_id):
+        return Notes.objects.get(id = note_id)
     
     def put(self, request ,note_id):
-        note = Notes.objects.get(id=note_id)
+        note = self.get_queryset(note_id)
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         collaborator_email = serializer.validated_data['collaborator']
@@ -309,13 +320,16 @@ class AddCollaborator(generics.GenericAPIView):
             return Response({'collaborator':collaborator_email}, status=status.HTTP_200_OK)
 
 
+    def get(self,request, note_id):
+        note = self.get_queryset(note_id)
+        serializer = ListNotesSerializer(note)
+        return Response({'response':serializer.data}, status=status.HTTP_200_OK)
+
+
 class Reminder(generics.GenericAPIView):
 
     serializer_class = ReminderSerializer
     permission_classes = (permissions.IsAuthenticated,IsCollaborator)
-
-    def get_queryset(self, note_id):
-        return Notes.objects.get(id = note_id)
 
     def put(self,request, note_id):
         note = Notes.objects.get(id = note_id)
@@ -329,7 +343,6 @@ class Reminder(generics.GenericAPIView):
             note.save()
             return Response({'response':serializer.data}, status=status.HTTP_200_OK)
 
-        
     def get(self,request, note_id):
         note = self.get_queryset(note_id)
         serializer = self.serializer_class(note)
