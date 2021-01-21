@@ -11,7 +11,14 @@ def delete_trashed_note():
     for note in notes:
         if datetime.now() - note.trashedAt.replace(tzinfo=None) > timedelta(days=7):
             note.delete()
+            return "Trashed notes are deleted!!!" 
 
-# @shared_task
-# def send_email(email):
-#     print(f'A sample msg is sent to {email}')
+
+@shared_task()
+def send_reminder():
+    notes = Notes.objects.filter(isDelete=False).exclude(reminder=None)
+    for note in notes:
+        if note.reminder.replace(tzinfo=None) - datetime.now() <= timedelta(seconds=1):
+            note.reminder = None
+            note.save()
+            return note
