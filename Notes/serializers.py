@@ -29,8 +29,8 @@ class ListNotesSerializer(serializers.ModelSerializer):
     collaborator = serializers.StringRelatedField(many=True, read_only=True)
     class Meta:
         model = Notes
-        fields=['owner','title','content','label','collaborator']
-        extra_kwargs = {'owner': {'read_only': True}, 'title': {'read_only': True}, 'content': {'read_only': True}}
+        fields=['owner','title','content','label','collaborator','reminder']
+        extra_kwargs = {'owner': {'read_only': True}, 'title': {'read_only': True}, 'content': {'read_only': True}, 'reminder': {'read_only': True}}
 
 
 class ArchiveNotesSerializer(serializers.ModelSerializer):
@@ -78,8 +78,8 @@ class AddCollaboratorSerializer(serializers.ModelSerializer):
 
 
 class ReminderSerializer(serializers.ModelSerializer):
-    collaborator = serializers.StringRelatedField(many=True, read_only=True)
-    label = serializers.StringRelatedField(many=True, read_only=True)
+    collaborator = serializers.StringRelatedField(read_only=True)
+    label = serializers.StringRelatedField(read_only=True)
     reminder = serializers.DateTimeField()
     class Meta:
         model = Notes

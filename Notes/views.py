@@ -331,12 +331,15 @@ class Reminder(generics.GenericAPIView):
     serializer_class = ReminderSerializer
     permission_classes = (permissions.IsAuthenticated,IsCollaborator)
 
+    def get_queryset(self, note_id):
+        return Notes.objects.get(id = note_id)
+
     def put(self,request, note_id):
-        note = Notes.objects.get(id = note_id)
+        note = self.get_queryset(note_id)
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         reminder = serializer.validated_data['reminder']
-        if reminder - datetime.now() < timedelta(seconds=0):
+        if reminder.replace(tzinfo=None) - datetime.now() < timedelta(seconds=0):
             return Response({'response':'Invalid Time Given'})
         else:
             note.reminder = reminder
@@ -345,8 +348,17 @@ class Reminder(generics.GenericAPIView):
 
     def get(self,request, note_id):
         note = self.get_queryset(note_id)
-        serializer = self.serializer_class(note)
+        serializer = ListNotesSerializer(note)
         return Response({'response':serializer.data}, status=status.HTTP_200_OK)
+
+    
+    def delete(self,request, note_id):
+        note = self.get_queryset(note_id)
+        if note.reminder is None:
+            return Response({'response':'Reminder is not set'})
+        note.reminder = None
+        note.save()
+        return Response({'response':note}, status=status.HTTP_200_OK)
         
 
 
