@@ -22,7 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = '0^8z=hr@te=^2h@ggegr=#2qt#krf$111-vy-(y0kcim98v4m7'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['.localhost']
 AUTH_USER_MODEL = 'authentication.user'
@@ -41,9 +41,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework_swagger',
     'drf_yasg',
-    'django_celery_results',
-    'django_celery_beat',
-  
 ]
 
 MIDDLEWARE = [
@@ -184,7 +181,7 @@ LOGGING = {
         }
     }
 }
-CACHE_TTL = 60 * 1500
+
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache", 
@@ -196,6 +193,12 @@ CACHES = {
         "KEY_PREFIX": "keep"
     }
 }
-# CELERY_BROKER_URL = 'amqp://localhost'
-CELERY_RESULT_BACKEND = 'django-db'
-CELERY_CACHE_BACKEND = 'django-cache'
+
+
+# CELERY
+BROKER_URL = 'redis://localhost:6379'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379'
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Africa/Nairobi'
