@@ -27,6 +27,9 @@
     * List all archived notes
     * List all trashed notes
     * Add labels to a note
+    * Add collaborators to note
+    * Add or Remove reminder to a note
+    * Searh notes 
 
 - **JWT Token :** JWT is an encoded JSON string that is passed in headers to authenticate requests. It is usually obtained by hashing JSON data with a secret key. This means that the server doesn't need to query the database every time to retrieve the user associated with a given token.  
 
@@ -43,6 +46,9 @@ Authentication is the process of identifying a logged-in user, while authorizati
     - By using status property we can check status of asychronous tasks.
 
 
+### PreRequirements : 
+- python 3.6
+
 ### Django Project Creation :
 
 #### Project setup and database structure:
@@ -57,18 +63,12 @@ Authentication is the process of identifying a logged-in user, while authorizati
     1. keep/Script/activate
 
 - Install **Requirements** of this project:
-    1. pip install django
-    2. pip install djangorestframework
-    3. pip install django-rest-framework jwt
-    4. pip install pyshortners
-    5. pip install django-redis
-    6. pip imstall celery
-    7. pip install django-celery-results
-    8. pip install django-celery-beat
-    9. pip install psycopg2
+
+            pip install -r requiremnet.txt
 
 - create our project using a command-line utility provided by django.
-    1. django-admin startproject KeepNotes
+            
+            django-admin startproject KeepNotes
 
 
 ### Start the project:
@@ -395,14 +395,12 @@ Authentication is the process of identifying a logged-in user, while authorizati
 - Otherwise create jwt token for it and return details in response.
 
 #### 4. ResetPassword View:
-
 - Take email from user validates it to generate jwt token.
 - Create link using token and send it to user email.
 - If email does not exist then raise validation error.
 - Use pyshortners to short this verification link.
 
 #### 5. NewPassword View:
-
 - Get token from url and decode it using jwt.decode().
 - fetch user details from it.
 - check if token is valid or not, if it is then set new validated password for user.
@@ -420,17 +418,16 @@ Authentication is the process of identifying a logged-in user, while authorizati
             return Response({'error':'Invalid Token'}, status=status.HTTP_400_BAD_REQUEST)
 
 #### 5. Logout View:
-
 - Set permsission as IsAuthenticated. So only authenticated and logged in user will be able to access it.
 - Call logout() 
 
 #### 6. UserProfile view:
-
 - Use RetreiveUpdate from generics that will provide views to update user profile.
 - to get current user profiel rewrite the get_object method :
     
         def get_object(self):
             return self.request.user.profile
+
 
 ### View for notes app:
 
@@ -449,7 +446,6 @@ Authentication is the process of identifying a logged-in user, while authorizati
 - Re write perform_create method to save data and get_queryset() to get records from database.
 
 #### 2. NoteDetails view:
-
 - It extends RetrieveUpdateDestroyView from generics.
 - It provides look-up field to get note by its id.
 - It provides views :
@@ -458,14 +454,12 @@ Authentication is the process of identifying a logged-in user, while authorizati
     * delete : To delete note.
 
 #### 3. CreateAndListLabels view :
-
 - It will extend CreateAndListView from generics of rest frame work.
 - It provides following views :
     * Post : To create a new label.
     * Get : To list all created labels for a user.
 
 #### 4. LabelDetails view:
-
 - It extends RetrieveUpdateDestroyView from generics.
 - It provides look-up field to get note by its id.
 - It provides views :
@@ -474,33 +468,28 @@ Authentication is the process of identifying a logged-in user, while authorizati
     * delete : To delete label.
 
 #### 5. ArchiveNote view:
-
 - It extends RetrieveUpdateDestroyView from generics.
 - It provides look-up field to get note by its id.
 - It provides views :
     * (put, patch) : To update archive field's value of note.
 
 #### 6. NoteToTrash view : 
-
 - It extends RetrieveUpdateDestroyView from generics.
 - It provides look-up field to get note by its id.
 - It provides views :
     * (put, patch) : To update isDelete field's value of note.
 
 #### 7. ArchiveNotesList view : 
-
 - It extends ListAPIView from generics.
 - It provides views :
     * get : To get all notes with archive field's value as true.
 
 #### 8. TrashList view : 
-
 - It extends ListAPIView from generics.
 - It provides views :
     * get : To get all notes with isDelete field's value as true.
 
 #### 9. AddLabelsToNote view : 
-
 - It extends RetrieveUpdateDestroyView from generics.
 - It provides look-up field to get note by its id.
 - It provides views :
@@ -516,7 +505,6 @@ Authentication is the process of identifying a logged-in user, while authorizati
             label =AddNotesInLabelsSerializer(many=True, queryset=Labels.objects.all())
 
 #### 10. ListNotesInLabel view :
-
 - Use same serializer class as AddLabelsToNote view.
 - Rewite the get_queryset() to filter queryset according to label id given in lookup field:
 
@@ -557,6 +545,7 @@ Authentication is the process of identifying a logged-in user, while authorizati
             path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
         ]
 
+
 ### Write Test Cases :
 - Create test folder in both apps.
 - In test folder create two files : 
@@ -593,6 +582,8 @@ Authentication is the process of identifying a logged-in user, while authorizati
 
 
 ### SonarQube Analysis:
+
+SonarQube® is an automatic code review tool to detect bugs, vulnerabilities, and code smells in your code. It can integrate with your existing workflow to enable continuous code inspection across your project branches and pull requests.
 
 #### Isntall sonarQube form zipfile:
 
@@ -805,6 +796,7 @@ So that next time that data can be retrieved from cache.
 
 
 ### References :
+- For SonarQube : https://docs.sonarqube.org/latest/analysis/scan/sonarscanner/
 - For redis cache implementation : https://docs.djangoproject.com/en/3.1/topics/cache/
 - For rabbitMQ installation :
     - ubuntu : https://simpleisbetterthancomplex.com/tutorial/2017/08/20/how-to-use-celery-with-django.html
@@ -812,3 +804,4 @@ So that next time that data can be retrieved from cache.
 - For celery : 
     1. https://simpleisbetterthancomplex.com/tutorial/2017/08/20/how-to-use-celery-with-django.html
     2. https://www.youtube.com/watch?v=A89mCa1ytow
+    3. For celery 3.1 - https://realpython.com/asynchronous-tasks-with-django-and-celery/
