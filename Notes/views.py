@@ -16,14 +16,26 @@ logger = logging.getLogger('django')
 
 class CreateAndListNotes(generics.ListCreateAPIView):
     """
-        API to create and list notes for current logged in user
+        Summary:
+        --------
+            This class will let authorized user to create and get notes.
+        --------
+        Methods:
+            get_queryset : User will get all the notes.
+            perform_create : User will able to create new note.
     """
     serializer_class = NotesSerializer
     queryset = Notes.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
 
     def perform_create(self,serializer):
-        """ Create new note for user """ 
+        """
+            Args:
+                serializer : [object of serializer_class to serailize note object]
+
+            Returns:
+                [Response]: [success message and status code]
+        """
         owner = self.request.user
         note = serializer.save(owner=owner)
         cache.set(str(owner)+"-notes-"+str(note.id), note)
@@ -32,20 +44,38 @@ class CreateAndListNotes(generics.ListCreateAPIView):
         return Response({'success':'New note is created!!'}, status=status.HTTP_201_CREATED)
     
     def get_queryset(self): 
-        """ Get notes list owned by current logged in user """
+        """
+            Args:
+            Returns:
+                [queryset]: [unique notes list for owner or collaborator]
+        """
         owner = self.request.user
         return self.queryset.filter(Q(owner=owner)|Q(collaborator=owner), Q(isArchive=False,isDelete=False)).distinct()   
                           
 
 class NoteDetails(generics.RetrieveUpdateAPIView):
-    """ API views to retrieve, update, and delete note by id for requested user """
+    """
+        Summary:
+        --------
+            This class will let authorized user to get or update note.
+        --------
+        Methods:
+            get_queryset : User will get the note by id.
+            perform_update : User will able to update note.
+    """
     serializer_class = NotesSerializer
     queryset = Notes.objects.all()
     permission_classes = (permissions.IsAuthenticated,IsCollaborator)
     lookup_field="id"
 
     def perform_update(self,serializer):
-        """ Save notes model instance with updated values """
+        """
+            Args:
+                serializer : [object of serializer_class to serailize note object]
+
+            Returns:
+                [Response]: [serialized note data and status code]
+        """
         owner = self.request.user
         note = serializer.save()
         cache.set(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]), self.queryset.all())
@@ -53,7 +83,11 @@ class NoteDetails(generics.RetrieveUpdateAPIView):
         return Response({'response': note}, status=status.HTTP_200_OK)
 
     def get_queryset(self):
-        """ Get note for given id owned by user """
+        """
+            Args:
+            Returns:
+                [queryset]: [owned or shared note fetched by given id]
+        """
         owner = self.request.user
         if cache.get(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field])):
             queryset = cache.get(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]))
@@ -68,26 +102,55 @@ class NoteDetails(generics.RetrieveUpdateAPIView):
             
 
 class DeleteNote(generics.DestroyAPIView):
+    """
+        Summary:
+        --------
+            This class will let authorized user to delete note.
+        --------
+        Methods:
+            perform_destroy : User will able to delete fetched note.
+    """
     serializer_class = NotesSerializer
     queryset = Notes.objects.all()
     permission_classes = (permissions.IsAuthenticated,IsOwner)
     lookup_field="id"
 
     def perform_destroy(self, instance):
+        """
+            Args:
+                serializer : [object of serializer_class to serailize note object]
+
+            Returns:
+                [Response]: [success message and status code]
+        """
         owner = self.request.user
         cache.delete(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]))
         instance.delete()
-        return Response({'response': 'Note is deleted permanently.'})
+        return Response({'response': 'Note is deleted permanently.'}, status=status.HTTP_204_NO_CONTENT)
 
 
 class CreateAndListLabels(generics.ListCreateAPIView):
-    """ API views for list and create labels for logged in user """
+    """
+        Summary:
+        --------
+            This class will let authorized user to create and get labels.
+        --------
+        Methods:
+            get_queryset : User will get all the labels.
+            perform_create : User will able to create new label.
+    """
     serializer_class = LabelsSerializer
     queryset = Labels.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
     
     def perform_create(self,serializer):
-        """ Create label instance with owner and validated data by serializer and """
+        """
+            Args:
+                serializer : [object of serializer_class to serailize note object]
+
+            Returns:
+                [Response]: [success message and status code]
+        """
         owner = self.request.user
         label = serializer.save(owner=owner)
         cache.set(str(owner)+"-labels-"+str(label.id), label)
@@ -96,20 +159,39 @@ class CreateAndListLabels(generics.ListCreateAPIView):
         return Response({'success':'New label is created!!'}, status=status.HTTP_201_CREATED)
 
     def get_queryset(self):
-        """ List all labels qwned by user """
+         """
+            Args:
+            Returns:
+                [queryset]: [list of labels owned by user]
+        """
         owner = self.request.user
         return self.queryset.filter(owner=owner)
         
 
 class LabelDetails(generics.RetrieveUpdateDestroyAPIView):
-    """ APIs to retrieve, update and delete labels by id for user """
+    """
+        Summary:
+        --------
+            This class will let authorized user to retrieve, update and delete label.
+        --------
+        Methods:
+            get_queryset : User will get label by id.
+            perform_update : User will able to update label.
+            perform_destroy : User will able to delete label.
+    """
     serializer_class = LabelsSerializer
     queryset = Labels.objects.all()
     permission_classes = (permissions.IsAuthenticated, IsOwner)
     lookup_field="id"
 
     def perform_update(self,serializer):
-        """ Update label instance with validated data provided by serializer """
+        """
+            Args:
+                serializer : [object of serializer_class to serailize note object]
+
+            Returns:
+                [Response]: [serialized label data and status code]
+        """
         owner = self.request.user
         label = serializer.save(owner=owner)
         cache.set(str(owner)+"-labels-"+str(self.kwargs[self.lookup_field]), self.queryset.all())
@@ -117,7 +199,11 @@ class LabelDetails(generics.RetrieveUpdateDestroyAPIView):
         return Response({'response':label}, status=status.HTTP_200_OK)
     
     def get_queryset(self):
-        """ Get label details for given label id owned by user """
+        """
+            Args:
+            Returns:
+                [queryset]: [label fetched by given id and owned by user]
+        """
         owner = self.request.user
         if cache.get(str(owner)+"-labels-"+str(self.kwargs[self.lookup_field])):
             queryset = cache.get(str(owner)+"-labels-"+str(self.kwargs[self.lookup_field]))
@@ -131,21 +217,40 @@ class LabelDetails(generics.RetrieveUpdateDestroyAPIView):
             return queryset
 
     def perform_destroy(self, instance):
+        """
+            Args:
+                instance : [fetched label object by id ]
+
+            Returns:
+                [Response]: [success message and status code]
+        """
         owner = self.request.user
         cache.delete(str(owner)+"-labels-"+str(self.kwargs[self.lookup_field]))
         instance.delete()
-        return Response({'response': 'Label is deleted.'})
+        return Response({'response': 'Label is deleted.'}, status=status.HTTP_204_NO_CONTENT)
 
 
 class ArchiveNote(generics.RetrieveUpdateAPIView):
-    """ API to update archive field value of a note owned by user """
+    """
+        Summary:
+        --------
+            This class will let authorized user to archive note.
+        --------
+        Methods:
+            get_queryset : User will get note by id.
+            perform_update : User will able to update archive field value of fetched note.
+    """
     serializer_class = ArchiveNotesSerializer
     queryset = Notes.objects.all()
     permission_classes = (permissions.IsAuthenticated, IsOwner)
     lookup_field="id"
 
     def get_queryset(self):
-        """ Get current archive field value of note """
+        """
+            Args:
+            Returns:
+                [queryset]: [note owned by user is fetched with given id]
+        """
         owner = self.request.user
         if cache.get(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field])):
             queryset = cache.get(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]))
@@ -158,7 +263,13 @@ class ArchiveNote(generics.RetrieveUpdateAPIView):
             return queryset
  
     def perform_update(self,serializer):
-        """ Update archive field with new boolean value given"""
+        """
+            Args:
+                serializer : [object of serializer_class to serailize note object]
+
+            Returns:
+                [Response]: [serialized data of updated note and status code]
+        """
         owner = self.request.user
         note = serializer.save(owner=owner)
         a=cache.set(str(owner)+"-notes-"+str(note.id), self.queryset.all())
@@ -167,25 +278,50 @@ class ArchiveNote(generics.RetrieveUpdateAPIView):
     
 
 class ArchiveNotesList(generics.ListAPIView):
-    """ API to list all archived notes list for user """
+    """
+        Summary:
+        --------
+            This class will let authorized user to get all archived notes.
+        --------
+        Methods:
+            get_queryset : User will get all note with archive field value as true.   
+    """
     permission_classes=(permissions.IsAuthenticated, IsOwner)
     serializer_class = ArchiveNotesSerializer
     queryset = Notes.objects.all()
     
     def get_queryset(self):
-        """ filter the queryset for isArchive field value and owner """
+        """
+            Args:
+            Returns:
+                [queryset]: [archive note list owned by user]
+        """
         return self.queryset.filter(owner=self.request.user,isArchive=True, isDelete=False)
         
 
 class TrashUntrash(generics.RetrieveUpdateAPIView):
-    """ API to update delete field value of note for given id so it can be moved to trash """
+    """
+        Summary:
+        --------
+            This class will let authorized user to move note to trash.
+        --------
+        Methods:
+            get_queryset : User will get note by id.
+            perform_update : User will able to update isDelete field value of fetched note.
+    """
     serializer_class = TrashSerializer
     queryset = Notes.objects.all()
     permission_classes = (permissions.IsAuthenticated, IsOwner)
     lookup_field="id"
 
     def perform_update(self,serializer):
-        """ Update delete field value of note with value given by user """
+        """
+            Args:
+                serializer : [object of serializer_class to serailize note object]
+
+            Returns:
+                [Response]: [serialized data of updated note and status code]
+        """
         owner = self.request.user
         if serializer.validated_data['isDelete']==True:
             note = serializer.save(owner=owner, trashedAt=datetime.now())
@@ -200,7 +336,11 @@ class TrashUntrash(generics.RetrieveUpdateAPIView):
         
 
     def get_queryset(self):
-        """ Get the current delete field value of a note for given id """
+        """
+            Args:
+            Returns:
+                [queryset]: [owned note by user is fetched with given id]
+        """
         owner = self.request.user
         if cache.get(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field])):
             queryset = cache.get(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]))
@@ -215,26 +355,59 @@ class TrashUntrash(generics.RetrieveUpdateAPIView):
         
 
 class TrashList(generics.ListAPIView):
-    """ API to get list of all trashed notes list for user """
+    """
+        Summary:
+        --------
+            This class will let authorized user to get all trashed notes.
+        --------
+        Methods:
+            get_queryset : User will get all note with isDelete field value as true.   
+    """
     permission_classes=(permissions.IsAuthenticated, IsOwner)
     serializer_class = TrashSerializer
     queryset = Notes.objects.all()
     
     def get_queryset(self):
-        """ Filetr the queryset by isDelete field and owner id """
+        """
+            Args:
+            Returns:
+                [queryset]: [trashed note list owned by user]
+        """
         owner = self.request.user
         return self.queryset.filter(owner=owner, isDelete=True)
         
 
 class AddLabelsToNote(generics.GenericAPIView):
-    """ API to add available labels to notes of requested user """
+    """
+        Summary:
+        --------
+            This class will let authorized user to add label to the note.
+        --------
+        Methods:
+            get: User will get the note by id.
+            put: This method allows to add labels to fetched note.
+            get_queryset : It returns the note of given id.
+    """
     permission_classes = (permissions.IsAuthenticated,IsOwner)
     serializer_class = AddLabelsToNoteSerializer
 
     def get_queryset(self, note_id):
+        """
+            Args:
+                note_id : [id of note to be fetched]
+            Returns:
+                [queryset]: [owned note is fetched by given id]
+        """
         return Notes.objects.get(id = note_id, owner=self.request.user)
 
     def put(self, request, note_id):
+        """
+            Args:
+                note_id : [id of note provided in url]
+
+            Returns:
+                [Response]: [added label name and status code]
+        """
         try:
             note = self.get_queryset(note_id)
         except Notes.DoesNotExist:
@@ -251,27 +424,59 @@ class AddLabelsToNote(generics.GenericAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def get(self,request, note_id):
+        """
+            Args:
+                note_id : [id of note to be fetched]
+            Returns:
+                [Response]: [serialized data of fetched note and status code]
+        """
         note = self.get_queryset(note_id)
         serializer = ListNotesSerializer(note)
         return Response({'response':serializer.data}, status=status.HTTP_200_OK)
 
 
 class ListNotesInLabel(generics.ListAPIView):
-    """ API for list all notes in a given label """
+    """
+        Summary:
+        --------
+            This class will let authorized user to get all notes with same label.
+        --------
+        Methods:
+            get_queryset : User will get all note same label id given.   
+    """
     permission_classes = (permissions.IsAuthenticated,IsOwner)
     serializer_class = ListNotesSerializer
     lookup_field='label_id'
 
     def get_queryset(self):
-        """ Label is fetched by id """
+        """
+            Args:
+            Returns:
+                [queryset]: [note list with a label given id and owned by user]
+        """
         return Labels.objects.get(id=self.kwargs[self.lookup_field],owner=self.request.user).notes_set.all()
        
 
 class SearchNote(generics.GenericAPIView):
+    """
+        Summary:
+        --------
+            This class will let authorized user to search notes by title or content.
+        --------
+        Methods:
+            get_queryset : It returns the notes having search query parameters.
+            get: It returns the serailized notes list.
+    """
     permission_classes=(permissions.IsAuthenticated,IsOwner)
     serializer_class = NotesSerializer    
     
     def get_queryset(self, queryset=None):
+        """
+            Args:
+                queryset : [search query parameter]
+            Returns:
+                [note]: [fetched notes containing given search query]
+        """
         notes = []
         owner = self.request.user
         if queryset:                
@@ -287,6 +492,12 @@ class SearchNote(generics.GenericAPIView):
         return notes
 
     def get(self, request):
+        """
+            Args:
+                request : 
+            Returns:
+                [Response]: [serialized data of fetched notes and status code]
+        """
         queryset = request.GET.get('search')
         if queryset:
             note = self.get_queryset(queryset)
@@ -297,13 +508,37 @@ class SearchNote(generics.GenericAPIView):
 
 
 class AddCollaborator(generics.GenericAPIView):
+    """
+        Summary:
+        --------
+            This class will let authorized user to add collaborators to a note.
+        --------
+        Methods:
+            get_queryset : It returns the queryset of note by given id.
+            get: It returns the serailized note.
+            put : It allows to add collaborators email in collaborator field of note.
+    """
     permission_classes = (permissions.IsAuthenticated, IsCollaborator)
     serializer_class = AddCollaboratorSerializer
 
     def get_queryset(self, note_id):
+        """
+            Args:
+                note_id : [unique id used to retrieve note]
+
+            Returns:
+                [queryset]: [note object with given id]
+        """
         return Notes.objects.get(id = note_id)
     
     def put(self, request ,note_id):
+        """
+            Args:
+                note_id : [id of note provided in url]
+
+            Returns:
+                [Response]: [added collaborator email and status code]
+        """
         note = self.get_queryset(note_id)
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -321,20 +556,49 @@ class AddCollaborator(generics.GenericAPIView):
 
 
     def get(self,request, note_id):
+        """
+            Args:
+                note_id : [id of note provided in url] 
+            Returns:
+                [Response]: [serialized data of fetched note and status code]
+        """
         note = self.get_queryset(note_id)
         serializer = ListNotesSerializer(note)
         return Response({'response':serializer.data}, status=status.HTTP_200_OK)
 
 
 class Reminder(generics.GenericAPIView):
-
+    """
+        Summary:
+        --------
+            This class will let authorized user to add reminder to a note.
+        --------
+        Methods:
+            get_queryset : It returns the queryset of note by given id.
+            get: It returns the serailized note.
+            put : It allows to add reminder for fetched note if the data is valid.
+    """
     serializer_class = ReminderSerializer
     permission_classes = (permissions.IsAuthenticated,IsCollaborator)
 
     def get_queryset(self, note_id):
+        """
+            Args:
+                note_id : [unique id used to retrieve note]
+
+            Returns:
+                [queryset]: [note object with given id]
+        """
         return Notes.objects.get(id = note_id,)
 
     def put(self,request, note_id):
+        """
+            Args:
+                note_id : [id of note provided in url]
+
+            Returns:
+                [Response]: [serialized reminder data set to note and status code]
+        """
         note = self.get_queryset(note_id)
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -347,12 +611,24 @@ class Reminder(generics.GenericAPIView):
             return Response({'response':serializer.data}, status=status.HTTP_200_OK)
 
     def get(self,request, note_id):
+        """
+            Args:
+                note_id : [id of note provided in url] 
+            Returns:
+                [Response]: [serialized data of fetched notes and status code]
+        """
         note = self.get_queryset(note_id)
         serializer = ListNotesSerializer(note)
         return Response({'response':serializer.data}, status=status.HTTP_200_OK)
 
     
     def delete(self,request, note_id):
+        """
+            Args:
+                note_id : [id of note provided in url] 
+            Returns:
+                [Response]: [updated note and status code]
+        """
         note = self.get_queryset(note_id)
         if note.reminder is None:
             return Response({'response':'Reminder is not set'})
