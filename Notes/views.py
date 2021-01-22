@@ -94,14 +94,14 @@ class NoteDetails(generics.RetrieveUpdateAPIView):
             logger.info("udated note data is coming from cache")
             return queryset
         else:
-            queryset = self.queryset.filter(isArchive=False,isDelete=False)
+            queryset = self.queryset.filter(isDelete=False)
             logger.info("updated note data is coming form DB")
             if queryset:
                 cache.set(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]), queryset)
             return queryset
             
 
-class DeleteNote(generics.DestroyAPIView):
+class DeleteNote(generics.RetrieveDestroyAPIView):
     """
         Summary:
         --------
@@ -159,7 +159,7 @@ class CreateAndListLabels(generics.ListCreateAPIView):
         return Response({'success':'New label is created!!'}, status=status.HTTP_201_CREATED)
 
     def get_queryset(self):
-         """
+        """
             Args:
             Returns:
                 [queryset]: [list of labels owned by user]
@@ -257,7 +257,7 @@ class ArchiveNote(generics.RetrieveUpdateAPIView):
             logger.info("udated archive notes data is coming from cache")
             return queryset
         else:
-            queryset = self.queryset.filter(owner=owner,isDelete=False, id=self.kwargs[self.lookup_field])
+            queryset = self.queryset.filter(isDelete=False, id=self.kwargs[self.lookup_field])
             logger.info("updated archive note data is coming form DB")
             cache.set(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]), queryset)
             return queryset
@@ -272,7 +272,7 @@ class ArchiveNote(generics.RetrieveUpdateAPIView):
         """
         owner = self.request.user
         note = serializer.save(owner=owner)
-        a=cache.set(str(owner)+"-notes-"+str(note.id), self.queryset.all())
+        cache.set(str(owner)+"-notes-"+str(note.id), self.queryset.all())
         logger.info("udated archive note data is set")
         return Response({'response':note}, status=status.HTTP_200_OK)
     
@@ -348,7 +348,7 @@ class TrashUntrash(generics.RetrieveUpdateAPIView):
             return queryset
 
         else:
-            queryset = self.queryset.filter(owner=owner, id=self.kwargs[self.lookup_field])
+            queryset = self.queryset.filter(id=self.kwargs[self.lookup_field])
             logger.info("updated trashed note data is coming form DB")
             cache.set(str(owner)+"-notes-"+str(self.kwargs[self.lookup_field]), queryset)
             return queryset
@@ -388,7 +388,7 @@ class AddLabelsToNote(generics.GenericAPIView):
             put: This method allows to add labels to fetched note.
             get_queryset : It returns the note of given id.
     """
-    permission_classes = (permissions.IsAuthenticated,IsOwner)
+    permission_classes = (permissions.IsAuthenticated,IsCollaborator)
     serializer_class = AddLabelsToNoteSerializer
 
     def get_queryset(self, note_id):
@@ -398,7 +398,7 @@ class AddLabelsToNote(generics.GenericAPIView):
             Returns:
                 [queryset]: [owned note is fetched by given id]
         """
-        return Notes.objects.get(id = note_id, owner=self.request.user)
+        return Notes.objects.get(id=note_id, owner=self.request.user)
 
     def put(self, request, note_id):
         """
@@ -423,7 +423,7 @@ class AddLabelsToNote(generics.GenericAPIView):
         note.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def get(self,request, note_id):
+    def get(self,request,note_id):
         """
             Args:
                 note_id : [id of note to be fetched]
@@ -432,7 +432,7 @@ class AddLabelsToNote(generics.GenericAPIView):
         """
         note = self.get_queryset(note_id)
         serializer = ListNotesSerializer(note)
-        return Response({'response':serializer.data}, status=status.HTTP_200_OK)
+        return Response({'response': serializer.data}, status=status.HTTP_200_OK)
 
 
 class ListNotesInLabel(generics.ListAPIView):
@@ -529,7 +529,7 @@ class AddCollaborator(generics.GenericAPIView):
             Returns:
                 [queryset]: [note object with given id]
         """
-        return Notes.objects.get(id = note_id)
+        return Notes.objects.get(id = note_id,owner=self.request.user)
     
     def put(self, request ,note_id):
         """
@@ -539,7 +539,10 @@ class AddCollaborator(generics.GenericAPIView):
             Returns:
                 [Response]: [added collaborator email and status code]
         """
-        note = self.get_queryset(note_id)
+        try:
+            note = self.get_queryset(note_id)
+        except Notes.DoesNotExist:
+            return Response({'Note does not exist'},status=status.HTTP_404_NOT_FOUND)
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         collaborator_email = serializer.validated_data['collaborator']
@@ -589,7 +592,7 @@ class Reminder(generics.GenericAPIView):
             Returns:
                 [queryset]: [note object with given id]
         """
-        return Notes.objects.get(id = note_id,)
+        return Notes.objects.get(id = note_id)
 
     def put(self,request, note_id):
         """
@@ -627,14 +630,15 @@ class Reminder(generics.GenericAPIView):
             Args:
                 note_id : [id of note provided in url] 
             Returns:
-                [Response]: [updated note and status code]
+                [Response]: [delete message and status code]
         """
         note = self.get_queryset(note_id)
         if note.reminder is None:
             return Response({'response':'Reminder is not set'})
-        note.reminder = None
-        note.save()
-        return Response({'response':note}, status=status.HTTP_200_OK)
+        else:
+            note.reminder = None
+            note.save()
+            return Response({'response':'Reminder is removed'}, status=status.HTTP_200_OK)
         
 
 

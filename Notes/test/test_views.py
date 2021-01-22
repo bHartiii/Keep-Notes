@@ -409,7 +409,7 @@ class NotesAPITest(TestCase):
     def test_archive_note_of_other_user_after_login_with_valid_credentials(self):
         self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type=CONTENT_TYPE)
         response = self.client.put(reverse('archive-note', kwargs={'id': self.note_for_user2.id}),data=json.dumps(self.valid_archive_payload), content_type=CONTENT_TYPE)
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 ### Test cases to get archive note details by id:
 
@@ -430,14 +430,13 @@ class NotesAPITest(TestCase):
     def test_get_archive_note_of_other_user_after_login(self):
         self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type=CONTENT_TYPE)
         response = self.client.get(reverse('archive-note', kwargs={'id': self.note_for_user2.id}), content_type=CONTENT_TYPE)
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 ### Test cases for NoteToTrash API (Move note to trash)
 
     def test_move_note_to_trash_without_login(self):
         response = self.client.put(reverse('note-to-trash', kwargs={'id': self.note_for_user1.id}),data=json.dumps(self.valid_trash_payload), content_type=CONTENT_TYPE)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
 
     def test_move_note_to_trash_after_login_with_invalid_credentials(self):
         self.client.post(reverse('login'),data=json.dumps(self.invalid_credentials), content_type=CONTENT_TYPE)
@@ -452,7 +451,7 @@ class NotesAPITest(TestCase):
     def test_move_note_to_trash_of_other_user_after_login_with_valid_credentials(self):
         self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type=CONTENT_TYPE)
         response = self.client.put(reverse('note-to-trash', kwargs={'id': self.note_for_user2.id}),data=json.dumps(self.valid_trash_payload),  content_type=CONTENT_TYPE)
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_move_note_to_trash_after_login_with_invalid_payload(self):
         self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type=CONTENT_TYPE)
@@ -478,7 +477,7 @@ class NotesAPITest(TestCase):
     def test_get_note_in_trash_of_other_user_after_login(self):
         self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type=CONTENT_TYPE)
         response = self.client.get(reverse('note-to-trash', kwargs={'id': self.note_for_user2.id}), content_type=CONTENT_TYPE)
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
     
 ### Test cases for ArchiveNoteList API 
 
@@ -649,7 +648,7 @@ class NotesAPITest(TestCase):
     def test_add_collaborator_to_shared_note(self):
         self.client.post(reverse('login'), data=json.dumps(self.user2_credentials), content_type=CONTENT_TYPE)
         response = self.client.put(reverse('collaborator', kwargs={'note_id': self.note3_for_user1.id}), data=json.dumps(self.collaborator2_valid_payload), content_type=CONTENT_TYPE)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
 ### Reminder API testcases:
 
