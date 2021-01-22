@@ -232,7 +232,7 @@ class AddLabelsToNote(generics.GenericAPIView):
     serializer_class = AddLabelsToNoteSerializer
 
     def get_queryset(self, note_id):
-        return Notes.objects.get(id = note_id)
+        return Notes.objects.get(id = note_id, owner=self.request.user)
 
     def put(self, request, note_id):
         try:
@@ -332,7 +332,7 @@ class Reminder(generics.GenericAPIView):
     permission_classes = (permissions.IsAuthenticated,IsCollaborator)
 
     def get_queryset(self, note_id):
-        return Notes.objects.get(id = note_id)
+        return Notes.objects.get(id = note_id,)
 
     def put(self,request, note_id):
         note = self.get_queryset(note_id)
@@ -340,7 +340,7 @@ class Reminder(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         reminder = serializer.validated_data['reminder']
         if reminder.replace(tzinfo=None) - datetime.now() < timedelta(seconds=0):
-            return Response({'response':'Invalid Time Given'})
+            return Response({'response':'Invalid Time Given'}, status=status.HTTP_400_BAD_REQUEST)
         else:
             note.reminder = reminder
             note.save()

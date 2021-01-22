@@ -3,25 +3,26 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from authentication.models import User, UserProfile
 from Notes.models import Notes, Labels
-from ..serializers import NotesSerializer, LabelsSerializer, ArchiveNotesSerializer, TrashSerializer, AddLabelsToNoteSerializer, ListNoteInLabelSerializer
+from ..serializers import NotesSerializer, LabelsSerializer, ArchiveNotesSerializer, TrashSerializer, AddLabelsToNoteSerializer, ListNotesSerializer
 import json
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q
+from datetime import datetime, timedelta
 
 CONTENT_TYPE = 'application/json'
 
 class NotesAPITest(TestCase):
     """ Test module for notes app APIs """
 
-    def setUp(self):
-
-        
+    def setUp(self): 
         # Intialize the test client
         self.client = Client()
 
         self.user1 = User.objects.create(email='malibharti5@gmail.com', username='bharti',password='pbkdf2_sha256$180000$vf55wIVIolGs$orroOnnkyPPnUqNgUpgYK4yI9un4fl+Oy0Ig9MUF+DI=', is_active=True, is_verified=True, )
         self.user2 = User.objects.create(email='malibharti@gmail.com', username='bharti2',password='pbkdf2_sha256$180000$vf55wIVIolGs$orroOnnkyPPnUqNgUpgYK4yI9un4fl+Oy0Ig9MUF+DI=', is_active=True, is_verified=True, )
-        
+        self.user3 = User.objects.create(email='malibharti05@gmail.com', username='bharti05',password='pbkdf2_sha256$180000$vf55wIVIolGs$orroOnnkyPPnUqNgUpgYK4yI9un4fl+Oy0Ig9MUF+DI=', is_active=True, is_verified=True, )
+
+
         self.note_for_user1 = Notes.objects.create(title='note1', content='first note',owner=self.user1, isArchive=False, isDelete=False)
         self.note2_for_user1 = Notes.objects.create(title='note2', content='second note',owner=self.user1, isArchive=False, isDelete=False)
         self.note3_for_user1 = Notes.objects.create(title='note3', content='third note',owner=self.user1,  isArchive=False, isDelete=False)
@@ -82,9 +83,18 @@ class NotesAPITest(TestCase):
         }
         self.collaborator_valid_payload = {
             'collaborator' : 'malibharti@gmail.com'
+        }
+        self.collaborator2_valid_payload = {
+            'collaborator' : 'malibharti05@gmail.com'
         } 
         self.collaborator_invalid_payload = {
             'collaborator' : 'malibharti'
+        }
+        self.reminder_valid_payload = {
+            'reminder' : datetime.now()+timedelta(minutes=1)
+        }
+        self.reminder_invalid_payload = {
+            'reminder' : datetime.now()-timedelta(minutes=1)
         }
 
 
@@ -578,14 +588,14 @@ class NotesAPITest(TestCase):
     def test_get_note_list_in_label_after_login(self):
         self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type=CONTENT_TYPE)
         notes = Notes.objects.filter(owner=self.user1.id, label=self.label_for_user1.id)
-        serializer = ListNoteInLabelSerializer(notes, many=True)
+        serializer = ListNotesSerializer(notes, many=True)
         response = self.client.get(reverse('list-notes-in-label', kwargs={'label_id': self.label_for_user1.id}), content_type=CONTENT_TYPE)
         self.assertEqual(response.data, serializer.data)
 
     def test_get_note_list_in_label_of_other_user_after_login(self):
         self.client.post(reverse('login'),data=json.dumps(self.user1_credentials), content_type=CONTENT_TYPE)
         notes = Notes.objects.filter(owner=self.user2.id, label=self.label_for_user2.id)
-        serializer = ListNoteInLabelSerializer(notes, many=True)
+        serializer = ListNotesSerializer(notes, many=True)
         response = self.client.get(reverse('list-notes-in-label', kwargs={'label_id': self.label_for_user1.id}), content_type=CONTENT_TYPE)
         if (not response.data) and (not serializer.data):
             self.assertEqual(response.data, serializer.data)
@@ -623,15 +633,52 @@ class NotesAPITest(TestCase):
 ### AddCollaborator API testcase : 
 
     def test_add_collaborator_without_login(self):
-        response = self.client.post(reverse('collaborator', kwargs={'note_id': self.label_for_user1.id}), data=json.dumps(self.collaborator_valid_payload), content_type=CONTENT_TYPE)
+        response = self.client.put(reverse('collaborator', kwargs={'note_id': self.note_for_user1.id}), data=json.dumps(self.collaborator_valid_payload), content_type=CONTENT_TYPE)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_add_collaborator_after_login_with_invalid_credentials(self):
         self.client.post(reverse('login'), data=json.dumps(self.invalid_credentials), content_type=CONTENT_TYPE)
-        response = self.client.post(reverse('collaborator', kwargs={'note_id': self.label_for_user1.id}), data=json.dumps(self.collaborator_valid_payload), content_type=CONTENT_TYPE)
+        response = self.client.put(reverse('collaborator', kwargs={'note_id': self.note_for_user1.id}), data=json.dumps(self.collaborator_valid_payload), content_type=CONTENT_TYPE)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_add_collaborator_after_login(self):
         self.client.post(reverse('login'), data=json.dumps(self.user1_credentials), content_type=CONTENT_TYPE)
-        response = self.client.put(reverse('collaborator', kwargs={'note_id': self.label_for_user1.id}), data=json.dumps(self.collaborator_valid_payload), content_type=CONTENT_TYPE)
+        response = self.client.put(reverse('collaborator', kwargs={'note_id': self.note_for_user1.id}), data=json.dumps(self.collaborator_valid_payload), content_type=CONTENT_TYPE)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_add_collaborator_to_shared_note(self):
+        self.client.post(reverse('login'), data=json.dumps(self.user2_credentials), content_type=CONTENT_TYPE)
+        response = self.client.put(reverse('collaborator', kwargs={'note_id': self.note3_for_user1.id}), data=json.dumps(self.collaborator2_valid_payload), content_type=CONTENT_TYPE)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+### Reminder API testcases:
+
+    def test_add_reminder_without_login(self):
+        response = self.client.put(reverse('reminder', kwargs={'note_id': self.note_for_user1.id}), data=self.reminder_valid_payload, content_type=CONTENT_TYPE)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_add_reminder_with_invalid_credentials_login(self):
+        self.client.post(reverse('login'), data=json.dumps(self.invalid_credentials), content_type=CONTENT_TYPE)
+        response = self.client.put(reverse('reminder', kwargs={'note_id': self.note_for_user1.id}), data=self.reminder_valid_payload, content_type=CONTENT_TYPE)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+    
+    def test_add_reminder_after_login_with_valid_payload(self):
+        self.client.post(reverse('login'), data=json.dumps(self.user1_credentials), content_type=CONTENT_TYPE)
+        response = self.client.put(reverse('reminder', kwargs={'note_id': self.note_for_user1.id}), data=self.reminder_valid_payload, content_type=CONTENT_TYPE)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_add_reminder_after_login_with_invalid_payload(self):
+        self.client.post(reverse('login'), data=json.dumps(self.user1_credentials), content_type=CONTENT_TYPE)
+        response = self.client.put(reverse('reminder', kwargs={'note_id': self.note_for_user1.id}), data=self.reminder_invalid_payload, content_type=CONTENT_TYPE)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+### Delete remider API test case:
+
+    def test_delete_reminder_without_login(self):
+        response = self.client.delete(reverse('reminder', kwargs={'note_id': self.note_for_user1.id}), content_type=CONTENT_TYPE)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_delete_reminder_after_login_with_valid_payload(self):
+        self.client.post(reverse('login'), data=json.dumps(self.user1_credentials), content_type=CONTENT_TYPE)
+        response = self.client.delete(reverse('reminder', kwargs={'note_id': self.note_for_user1.id}), content_type=CONTENT_TYPE)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
