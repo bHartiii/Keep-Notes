@@ -11,6 +11,8 @@ from django.core.cache import cache
 from rest_framework import status
 import logging
 from datetime import datetime, timedelta
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 logger = logging.getLogger('django')
 
@@ -296,7 +298,8 @@ class ArchiveNotesList(generics.ListAPIView):
             Returns:
                 [queryset]: [archive note list owned by user]
         """
-        return self.queryset.filter(owner=self.request.user,isArchive=True, isDelete=False)
+        owner = self.request.user
+        return self.queryset.filter(Q(owner=owner),isArchive=True, isDelete=False)
         
 
 class TrashUntrash(generics.RetrieveUpdateAPIView):
@@ -374,7 +377,7 @@ class TrashList(generics.ListAPIView):
                 [queryset]: [trashed note list owned by user]
         """
         owner = self.request.user
-        return self.queryset.filter(owner=owner, isDelete=True)
+        return self.queryset.filter(Q(owner=owner), isDelete=True)
         
 
 class AddLabelsToNote(generics.GenericAPIView):
@@ -386,19 +389,9 @@ class AddLabelsToNote(generics.GenericAPIView):
         Methods:
             get: User will get the note by id.
             put: This method allows to add labels to fetched note.
-            get_queryset : It returns the note of given id.
     """
-    permission_classes = (permissions.IsAuthenticated,IsCollaborator)
+    permission_classes = (permissions.IsAuthenticated,)
     serializer_class = AddLabelsToNoteSerializer
-
-    def get_queryset(self, note_id):
-        """
-            Args:
-                note_id : [id of note to be fetched]
-            Returns:
-                [queryset]: [owned note is fetched by given id]
-        """
-        return Notes.objects.get(id=note_id, owner=self.request.user)
 
     def put(self, request, note_id):
         """
@@ -409,7 +402,7 @@ class AddLabelsToNote(generics.GenericAPIView):
                 [Response]: [added label name and status code]
         """
         try:
-            note = self.get_queryset(note_id)
+            note = Notes.objects.get(Q(id = note_id), Q(owner=self.request.user)|Q(collaborator=self.request.user))
         except Notes.DoesNotExist:
             return Response({'response':'Note does not exist'}, status=status.HTTP_404_NOT_FOUND)
         serializer = self.serializer_class(data=request.data)
@@ -423,19 +416,22 @@ class AddLabelsToNote(generics.GenericAPIView):
         note.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def get(self,request,note_id):
+    def get(self,request, note_id):
         """
             Args:
-                note_id : [id of note to be fetched]
+                note_id : [id of note provided in url] 
             Returns:
                 [Response]: [serialized data of fetched note and status code]
         """
-        note = self.get_queryset(note_id)
-        serializer = ListNotesSerializer(note)
-        return Response({'response': serializer.data}, status=status.HTTP_200_OK)
+        note = Notes.objects.filter(Q(owner=self.request.user)|Q(collaborator=self.request.user),isDelete=False,id=note_id)
+        if note:
+            serializer = ListNotesSerializer(note,many=True)
+            return Response({'response':serializer.data}, status=status.HTTP_200_OK)
+        else:
+            return Response({'response':'Not Found'}, status=status.HTTP_404_NOT_FOUND)
 
 
-class ListNotesInLabel(generics.ListAPIView):
+class ListNotesInLabel(generics.GenericAPIView):
     """
         Summary:
         --------
@@ -444,18 +440,24 @@ class ListNotesInLabel(generics.ListAPIView):
         Methods:
             get_queryset : User will get all note same label id given.   
     """
-    permission_classes = (permissions.IsAuthenticated,IsOwner)
+    permission_classes = (permissions.IsAuthenticated,)
     serializer_class = ListNotesSerializer
-    lookup_field='label_id'
 
-    def get_queryset(self):
+    def get(self,request,label_id):
         """
             Args:
             Returns:
                 [queryset]: [note list with a label given id and owned by user]
         """
-        return Labels.objects.get(id=self.kwargs[self.lookup_field],owner=self.request.user).notes_set.all()
-       
+        try:
+            notes = Labels.objects.get(id=label_id,owner=self.request.user).notes_set.all()
+        except:
+            return Response({'response':'This label does not exist'}, status=status.HTTP_404_NOT_FOUND)
+        if notes:
+            serializer = ListNotesSerializer(notes,many=True)
+            return Response({'response':serializer.data}, status=status.HTTP_200_OK)
+        else:
+            return Response({'response':'No notes with this label'}, status=status.HTTP_200_OK)
 
 class SearchNote(generics.GenericAPIView):
     """
@@ -467,8 +469,9 @@ class SearchNote(generics.GenericAPIView):
             get_queryset : It returns the notes having search query parameters.
             get: It returns the serailized notes list.
     """
-    permission_classes=(permissions.IsAuthenticated,IsOwner)
+    permission_classes=(permissions.IsAuthenticated,)
     serializer_class = NotesSerializer    
+    token_param_config = openapi.Parameter('search',in_=openapi.IN_QUERY,description='Description',type=openapi.TYPE_STRING)
     
     def get_queryset(self, queryset=None):
         """
@@ -486,11 +489,12 @@ class SearchNote(generics.GenericAPIView):
                     notes = cache.get(query)
                     logger.info("data is coming from cache")
                 else:
-                    notes = Notes.objects.filter(Q(title__icontains=query)|Q(content__icontains=query), Q(isArchive=False,isDelete=False))
+                    notes = Notes.objects.filter(Q(title__icontains=query)|Q(content__icontains=query), Q(isArchive=False,isDelete=False),Q(owner=owner)|Q(collaborator=owner))
                     if notes:
                         cache.set(query, notes)  
         return notes
 
+    @swagger_auto_schema(manual_parameters=[token_param_config])
     def get(self, request):
         """
             Args:
@@ -514,23 +518,12 @@ class AddCollaborator(generics.GenericAPIView):
             This class will let authorized user to add collaborators to a note.
         --------
         Methods:
-            get_queryset : It returns the queryset of note by given id.
             get: It returns the serailized note.
             put : It allows to add collaborators email in collaborator field of note.
     """
-    permission_classes = (permissions.IsAuthenticated, IsCollaborator)
+    permission_classes = (permissions.IsAuthenticated, )
     serializer_class = AddCollaboratorSerializer
 
-    def get_queryset(self, note_id):
-        """
-            Args:
-                note_id : [unique id used to retrieve note]
-
-            Returns:
-                [queryset]: [note object with given id]
-        """
-        return Notes.objects.get(id = note_id,owner=self.request.user)
-    
     def put(self, request ,note_id):
         """
             Args:
@@ -540,9 +533,9 @@ class AddCollaborator(generics.GenericAPIView):
                 [Response]: [added collaborator email and status code]
         """
         try:
-            note = self.get_queryset(note_id)
-        except Notes.DoesNotExist:
-            return Response({'Note does not exist'},status=status.HTTP_404_NOT_FOUND)
+            note = Notes.objects.get(Q(owner=self.request.user)|Q(collaborator=self.request.user),isDelete=False,id=note_id)
+        except:
+            return Response({'response':'note does not exist!!'}, status=status.HTTP_404_NOT_FOUND)
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         collaborator_email = serializer.validated_data['collaborator']
@@ -553,7 +546,7 @@ class AddCollaborator(generics.GenericAPIView):
         if collaborator==request.user:
             return Response({'Detail': 'This email already exists!!!'}, status=status.HTTP_400_BAD_REQUEST)
         else:
-            note.collaborator.add(collaborator)
+            note.collaborator.add(collaborator.id)
             note.save()
             return Response({'collaborator':collaborator_email}, status=status.HTTP_200_OK)
 
@@ -565,10 +558,12 @@ class AddCollaborator(generics.GenericAPIView):
             Returns:
                 [Response]: [serialized data of fetched note and status code]
         """
-        note = self.get_queryset(note_id)
-        serializer = ListNotesSerializer(note)
-        return Response({'response':serializer.data}, status=status.HTTP_200_OK)
-
+        note = Notes.objects.filter(Q(owner=self.request.user)|Q(collaborator=self.request.user),isDelete=False,id=note_id)
+        if note:
+            serializer = ListNotesSerializer(note,many=True)
+            return Response({'response':serializer.data}, status=status.HTTP_200_OK)
+        else:
+            return Response({'response':'Not Found'}, status=status.HTTP_404_NOT_FOUND)
 
 class Reminder(generics.GenericAPIView):
     """
@@ -582,18 +577,18 @@ class Reminder(generics.GenericAPIView):
             put : It allows to add reminder for fetched note if the data is valid.
     """
     serializer_class = ReminderSerializer
-    permission_classes = (permissions.IsAuthenticated,IsCollaborator)
-
-    def get_queryset(self, note_id):
+    permission_classes = (permissions.IsAuthenticated,)
+    
+    def get_queryset(self, note_id, note=None):
         """
             Args:
                 note_id : [unique id used to retrieve note]
 
             Returns:
                 [queryset]: [note object with given id]
-        """
-        return Notes.objects.get(id = note_id)
-
+        """    
+        return Notes.objects.get(Q(owner=self.request.user)|Q(collaborator=self.request.user),isDelete=False,id=note_id)
+        
     def put(self,request, note_id):
         """
             Args:
@@ -602,7 +597,10 @@ class Reminder(generics.GenericAPIView):
             Returns:
                 [Response]: [serialized reminder data set to note and status code]
         """
-        note = self.get_queryset(note_id)
+        try:
+            note = self.get_queryset(note_id)
+        except:
+            return Response({'response':'Note does not exist'}, status=status.HTTP_404_NOT_FOUND)
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         reminder = serializer.validated_data['reminder']
@@ -618,13 +616,15 @@ class Reminder(generics.GenericAPIView):
             Args:
                 note_id : [id of note provided in url] 
             Returns:
-                [Response]: [serialized data of fetched notes and status code]
+                [Response]: [serialized data of fetched note and status code]
         """
-        note = self.get_queryset(note_id)
-        serializer = ListNotesSerializer(note)
-        return Response({'response':serializer.data}, status=status.HTTP_200_OK)
+        note = Notes.objects.filter(Q(owner=self.request.user)|Q(collaborator=self.request.user),isDelete=False,id=note_id)
+        if note:
+            serializer = ListNotesSerializer(note,many=True)
+            return Response({'response':serializer.data}, status=status.HTTP_200_OK)
+        else:
+            return Response({'response':'Not Found'}, status=status.HTTP_404_NOT_FOUND)
 
-    
     def delete(self,request, note_id):
         """
             Args:
@@ -632,7 +632,10 @@ class Reminder(generics.GenericAPIView):
             Returns:
                 [Response]: [delete message and status code]
         """
-        note = self.get_queryset(note_id)
+        try:
+            note = self.get_queryset(note_id)
+        except:
+            return Response({'response':'Note does not exist'}, status=status.HTTP_404_NOT_FOUND)
         if note.reminder is None:
             return Response({'response':'Reminder is not set'})
         else:
