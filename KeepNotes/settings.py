@@ -81,7 +81,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'keep_notes',
-        'USER': config('DB_USER')
+        'USER': config('DB_USER'),
         'HOST':config('DB_HOST'),
         'PASSWORD':config('DB_PASSWORD'),
         'PORT': '5432',
